@@ -24,7 +24,11 @@ url_regex = re.compile(r"(https?://[^\s]+)")
 
 EMOJI_MAP = {
     ":fire": "🔥", ":nice": "👍", ":cool": "😎", ":rocket": "🚀", ":laugh": "😂",
-    ":warn": "⚠️", ":check": "✅", ":heart": "❤️", ":star": "⭐", ":ghost": "👻"
+    ":warn": "⚠️", ":check": "✅", ":heart": "❤️", ":star": "⭐", ":ghost": "👻",
+    ":smile": "😊", ":cry": "😢", ":party": "🎉", ":eyes": "👀", ":100": "💯",
+    ":pray": "🙏", ":muscle": "💪",  ":zap": "⚡", ":robot": "🤖", ":lock": "🔒",
+    ":cloud": "☁️", ":bug": "🪲", ":skull": "💀", ":beer": "🍺", ":coffee": "☕",
+    ":globe": "🌐", ":key": "🔑", ":box": "📦", ":link": "🔗", ":top": "🔝"
 }
 
 def get_hw_id():
@@ -36,6 +40,14 @@ def get_hw_id():
         return socket.gethostname()
 
 CLI_PIN = get_hw_id()
+
+def format_date_simple(ts_int):
+    """Helper untuk format tanggal di sidebar."""
+    if not ts_int or ts_int == 0: return "N/A"
+    try:
+        return datetime.fromtimestamp(ts_int).strftime('%d %b %Y')
+    except:
+        return "Invalid"
 
 def get_human_time(ts):
     now = datetime.now(timezone.utc)
@@ -90,7 +102,11 @@ def run(args):
         server_ip = "127.0.0.1"
     
     my_ip = get_public_ip()
-    room_details = {"creator": "---", "description": "No description available."}
+    room_details = {
+        "creator": "---", 
+        "description": "No description available.",
+        "created_at": "N/A"
+    }
 
     try:
         r_info = requests.get(f"{url}/rooms", timeout=3).json()
@@ -98,24 +114,33 @@ def run(args):
             if r['name'] == room:
                 room_details['creator'] = r.get('creator', 'SYSTEM')[:10].upper()
                 room_details['description'] = r.get('description', 'No description.')
+                room_details['created_at'] = format_date_simple(r.get('created_at', 0))
     except: pass
 
     # UI Components
     chat_area = TextArea(read_only=True, scrollbar=True, wrap_lines=True, style="class:chat-content")
-    input_area = TextArea(height=4, multiline=True, prompt=" Message ❯❯❯ ", style="class:input-text")
+    input_area = TextArea(height=5, multiline=True, prompt=" Message ❯❯❯ ", style="class:input-text")
     right_sidebar_area = TextArea(read_only=True, focusable=False, wrap_lines=True, style="class:sidebar")
 
     show_emoji_modal = [False]
 
-    emoji_list_text = "\n".join([f" <me>{k:8}</me> <white>{v}</white>" for k, v in EMOJI_MAP.items()])
+    # UPDATE: Format Emoji List (Sorted agar rapi)
+    sorted_emojis = sorted(EMOJI_MAP.items())
+    emoji_list_text = ""
+    for i in range(0, len(sorted_emojis), 2):
+        row = sorted_emojis[i:i+2]
+        line = ""
+        for k, v in row:
+            line += f" <me>{k:8}</me> <white>{v}</white>  "
+        emoji_list_text += line + "\n"
+
     emoji_modal_content = TextArea(
         text="".join([t for s, t in to_formatted_text(HTML(f"<b>EMOJI SHORTCUTS</b>\n\n{emoji_list_text}"))]),
-        read_only=True, width=30, height=14, style="class:modal"
+        read_only=True, width=45, height=18, style="class:modal"
     )
     emoji_modal = Frame(emoji_modal_content, style="class:modal-border")
 
     def get_header_text():
-        now = datetime.now().strftime('%H:%M:%S')
         return f"  XtermChat-CLI  |  NODE: {socket.gethostname()}  |  {server_ip}  "
 
     def fetch_messages(app):
@@ -136,16 +161,16 @@ def run(args):
                             processed_content = url_regex.sub(r'<u>\g<0></u>', m.get("content", ""))
                             is_me = (m['sender'].lower() == user.lower() or str(m.get('pin')) == str(CLI_PIN))
                             if is_me:
-                                line = f" <time>{t_str:4}</time> <me>YOU</me> <dim>❯</dim> <me_text>{processed_content}</me_text>"
+                                line = f" <time>{t_str:4}</time> <me>You</me> <dim>❯</dim> <me_text>{processed_content}</me_text>"
                             else:
                                 line = f" <time>{t_str:4}</time> <sender>{m['sender'][:5]:5}</sender> <dim>❯</dim> {processed_content}"
                             lines.append(line)
                         
-                        # --- UPDATE: MENAMBAHKAN JARAK 5 BARIS DI AKHIR ---
+                        # Menambahkan jarak bawah
                         lines.extend([""] * 5) 
                         full_text = "".join([t for s, t in to_formatted_text(HTML("\n".join(lines)))])
                         
-                        # Set document dan kunci posisi ke pesan terakhir (sebelum padding baris kosong)
+                        # Logic Scroll: Kunci ke bawah hanya jika dokumen berubah (pesan baru)
                         chat_area.buffer.set_document(Document(text=full_text, cursor_position=len(full_text)), bypass_readonly=True)
                         last_msgs = msgs
                         app.invalidate()
@@ -161,7 +186,7 @@ def run(args):
         show_emoji_modal[0] = False
         event.app.invalidate()
 
-    # Navigasi Scroll Manual via Keyboard
+    # Navigasi Scroll
     @kb.add("pageup")
     def _(event):
         chat_area.control.scroll_to_position((chat_area.control.vertical_scroll - 5, 0))
@@ -174,6 +199,49 @@ def run(args):
     def _(event):
         msg = input_area.text.strip()
         if not msg: return
+
+        # --- COMMAND: PURGE (SERVER SIDE) ---
+        if msg == ":purge":
+            try:
+                # Pastikan room name bersih dari spasi
+                target_room = room.strip() 
+                payload = {"room": target_room, "user": user, "pin": CLI_PIN}
+                
+                # Gunakan timeout yang cukup
+                res = requests.post(f"{url}/purge-chat", json=payload, timeout=7)
+                
+                if res.status_code == 200:
+                    # Clear screen
+                    chat_area.buffer.set_document(Document(text=""), bypass_readonly=True)
+                    
+                    # Tampilkan pesan sukses dengan cursor di akhir
+                    success_msg = "\n <me>SYSTEM</me> <dim>❯</dim> <me_text>SUCCESS: Room history has been purged from server.</me_text>\n"
+                    chat_area.buffer.set_document(Document(text=success_msg, cursor_position=len(success_msg)), bypass_readonly=True)
+                
+                elif res.status_code == 403:
+                    error_msg = "\n <time>SYSTEM</time> <dim>❯</dim> <white>ERROR: Access Denied. Only the original Creator can purge.</white>\n"
+                    # Tambahkan ke text yang sudah ada agar chat lama tidak hilang saat gagal
+                    new_text = chat_area.text + error_msg
+                    chat_area.buffer.set_document(Document(text=new_text, cursor_position=len(new_text)), bypass_readonly=True)
+                
+                else:
+                    error_msg = f"\n <time>SYSTEM</time> <dim>❯</dim> <white>ERROR: Server returned status {res.status_code}</white>\n"
+                    new_text = chat_area.text + error_msg
+                    chat_area.buffer.set_document(Document(text=new_text, cursor_position=len(new_text)), bypass_readonly=True)
+
+            except Exception as e:
+                conn_error = f"\n <time>SYSTEM</time> <dim>❯</dim> <white>ERROR: Connection failed ({str(e)})</white>\n"
+                new_text = chat_area.text + conn_error
+                chat_area.buffer.set_document(Document(text=new_text, cursor_position=len(new_text)), bypass_readonly=True)
+            
+            input_area.text = ""
+            return
+        
+        if msg == ":clear":
+            chat_area.buffer.set_document(Document(text=""), bypass_readonly=True)
+            input_area.text = ""
+            return
+            
         if msg == ":e":
             show_emoji_modal[0] = not show_emoji_modal[0]
             input_area.text = ""
@@ -215,22 +283,34 @@ def run(args):
         f" <me> LOCKED</me>"
     )
 
-    right_side_html = f"\n <sidebar.label>CHANNEL</sidebar.label>\n <sidebar.val> #{room[:10].upper()}</sidebar.val>\n\n <sidebar.label>CREATOR</sidebar.label>\n  {room_details['creator']}\n\n <sidebar.label>ABOUT</sidebar.label>\n <white>{room_details['description']}</white>"
+    # Sidebar Kanan dengan Created At
+    right_side_html = (
+        f"\n <sidebar.label>CHANNEL</sidebar.label>\n"
+        f" <sidebar.val> #{room[:15].upper()}</sidebar.val>\n\n"
+        f" <sidebar.label>CREATOR</sidebar.label>\n"
+        f"  {room_details['creator']}\n\n"
+        f" <sidebar.label>CREATED</sidebar.label>\n"
+        f"  {room_details['created_at']}\n\n"
+        f" <sidebar.label>ABOUT</sidebar.label>\n"
+        f" <white>{room_details['description']}</white>"
+    )
     right_sidebar_area.buffer.set_document(Document(text="".join([t for s, t in to_formatted_text(HTML(right_side_html))])), bypass_readonly=True)
 
     body = VSplit([
-        Window(width=20, content=FormattedTextControl(left_side), style="class:sidebar"),
+        Window(width=25, content=FormattedTextControl(left_side), style="class:sidebar"),
         Window(width=1, char="│", style="class:dim"),
         chat_area,
         Window(width=1, char="│", style="class:dim"),
-        Window(width=28, content=right_sidebar_area.control, style="class:sidebar"),
+        Window(width=35, content=right_sidebar_area.control, style="class:sidebar"),
     ])
 
     root_container = FloatContainer(
         content=HSplit([
             Window(height=1, style="class:header", content=FormattedTextControl(text=get_header_text)),
             body,
-            Window(height=1, style="class:status", content=FormattedTextControl(text=" [PGUP/PGDN] SCROLL | [ESC] CLOSE | [ENTER] SEND ")),
+            Window(height=1, style="class:status", content=FormattedTextControl(
+                text=" [:clear] CLEAR | [:purge] PURGE | [:e] EMOJI | [CTRL C] EXIT | [ENTER] SEND "
+            )),            
             input_area
         ]),
         floats=[

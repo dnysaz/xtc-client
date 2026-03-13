@@ -18,7 +18,7 @@ def show_help():
     print("└" + "─"*(width-2) + "┘\033[0m")
 
     # Status Bar
-    print(f" \033[2mTYPE:\033[0m \033[32mTERMINAL-CHAT\033[0m  \033[2m|  VER:\033[0m \033[32m1.0.5\033[0m  \033[2m|  ENCRYPT:\033[0m \033[32mON\033[0m")
+    print(f" \033[2mTYPE:\033[0m \033[32mTERMINAL-CHAT\033[0m  \033[2m|  VER:\033[0m \033[32m1.0\033[0m  \033[2m|  ENCRYPT:\033[0m \033[32mON\033[0m")
 
     # Usage Section
     print(f"\n \033[1;34m➤\033[0m \033[1mUSAGE:\033[0m")
@@ -45,8 +45,7 @@ def show_help():
     print(f"   \033[36mxtc disconnect @server_ip\033[0m")
     print(f"   \033[36mxtc status\033[0m")
     print(f"   \033[36mxtc list:rooms\033[0m")
-    print(f"   \033[36mxtc create:room @myroom\033[0m")
-    print(f"   \033[36mxtc create:room @private (password)\033[0m")
+    print(f"   \033[36mxtc create:room\033[0m")
     print(f"   \033[36mxtc start:chat @myroom\033[0m")
     print(f"   \033[36mxtc delete:room @myroom\033[0m")
     

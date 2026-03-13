@@ -173,15 +173,19 @@
             <h3 class="text-lg font-bold text-gray-900 mb-4" id="detailRoomName">Room Detail</h3>
             <div class="space-y-4 mb-6">
                 <div>
-                    <span class="text-[10px] font-bold text-gray-400 uppercase">Creator</span>
-                    <p id="detailRoomCreator" class="text-sm font-bold">---</p>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Creator</span>
+                    <p id="detailRoomCreator" class="text-sm font-bold text-blue-600">---</p>
                 </div>
                 <div>
-                    <span class="text-[10px] font-bold text-gray-400 uppercase">Description</span>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Description</span>
                     <p id="detailRoomDesc" class="text-sm text-gray-600 italic">No description.</p>
                 </div>
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Created At</span>
+                    <p id="detailRoomCreatedAt" class="text-sm font-bold text-gray-800">---</p>
+                </div>
             </div>
-            <button onclick="closeRoomDetail()" class="w-full py-3 bg-gray-900 text-white text-xs font-bold uppercase rounded-xl">Close</button>
+            <button onclick="closeRoomDetail()" class="w-full py-3 bg-gray-900 text-white text-[10px] font-bold uppercase rounded-xl tracking-widest active:scale-95 transition-all">Close</button>
         </div>
     </div>
 
@@ -217,6 +221,17 @@
             const urlRegex = /(https?:\/\/[^\s]+)/g;
             return text.replace(urlRegex, function(url) {
                 return `<a href="${url}" target="_blank" class="chat-link">${url}</a>`;
+            });
+        }
+
+        // --- TIMESTAMP FORMATTER ---
+        function formatTimestamp(ts) {
+            if (!ts || ts === 0) return "N/A";
+            const date = new Date(ts * 1000);
+            return date.toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
             });
         }
 
@@ -279,6 +294,7 @@
             document.getElementById('detailRoomName').innerText = `#${roomData.name}`;
             document.getElementById('detailRoomCreator').innerText = roomData.creator || 'UNKNOWN';
             document.getElementById('detailRoomDesc').innerText = roomData.description || 'No description.';
+            document.getElementById('detailRoomCreatedAt').innerText = formatTimestamp(roomData.created_at);
             document.getElementById('roomDetailModal').classList.remove('hidden');
         }
 
