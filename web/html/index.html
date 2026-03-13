@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XtermChat | Authorize</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .toast-active { animation: slideUp 0.3s ease forwards; }
+        /* Hide arrows in number inputs */
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    </style>
+</head>
+<body class="bg-white h-screen flex flex-col md:flex-row overflow-hidden transition-opacity duration-500">
+
+    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] min-w-[300px] bg-black text-white px-6 py-5 rounded-none flex items-center gap-4 border-l-4 border-blue-600">
+        <div id="toast-icon" class="text-lg">⚠️</div>
+        <div class="flex flex-col">
+            <p id="toast-msg" class="text-xs font-black uppercase tracking-widest leading-tight"></p>
+        </div>
+    </div>
+
+    <div class="hidden md:flex flex-1 bg-blue-600 p-20 flex-col justify-between text-white relative">
+        <div class="relative z-10">
+            <div class="w-16 h-16 bg-white flex items-center justify-center mb-16">
+                <span class="text-blue-600 text-2xl font-black italic tracking-tighter">xtc</span>
+            </div>
+            <h2 class="text-6xl font-black leading-[0.9] mb-8 uppercase tracking-tighter">UNIFIED<br>MESSAGING<br>GATEWAY.</h2>
+            <p class="text-blue-100 text-sm leading-relaxed max-w-[320px] font-medium opacity-80">
+                XtermChat is a high-performance hybrid protocol bridging CLI Terminals, Web Interfaces, and Mobile Access in total real-time synchronization.
+            </p>
+        </div>
+        <div class="relative z-10 flex gap-10">
+            <div class="flex flex-col gap-2">
+                <span class="text-xs font-black uppercase tracking-[0.3em] text-blue-200">Security</span>
+                <span class="text-sm font-bold uppercase">End-to-End Encrypted</span>
+            </div>
+            <div class="flex flex-col gap-2">
+                <span class="text-xs font-black uppercase tracking-[0.3em] text-blue-200">Network</span>
+                <span class="text-sm font-bold uppercase">Multi-Platform Sync</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex-1 flex flex-col justify-center p-8 md:p-24 bg-white">
+        <div class="max-w-[420px] w-full mx-auto p-[5px]">
+            <div class="mb-12">
+                <h1 class="text-4xl font-black tracking-tighter text-black mb-3 uppercase">Authorize</h1>
+                <p class="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Identity Verification Required</p>
+            </div>
+
+            <div class="space-y-6">
+                <div class="flex gap-4">
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">Gateway Host</label>
+                        <div class="p-[5px]">
+                            <input type="text" id="ip" placeholder="127.0.0.1" 
+                                class="w-full bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 outline-none px-4 py-4 text-sm text-black font-bold transition-all placeholder-gray-300">
+                        </div>
+                    </div>
+                    <div class="w-28">
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">Port</label>
+                        <div class="p-[5px]">
+                            <input type="text" id="port" placeholder="8080" 
+                                class="w-full bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 outline-none px-4 py-4 text-sm text-black text-center font-bold transition-all placeholder-gray-300">
+                        </div>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">User Handle</label>
+                    <div class="p-[5px]">
+                        <input type="text" id="user" placeholder="USERNAME" 
+                            class="w-full bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 outline-none px-4 py-4 text-sm text-black font-bold uppercase transition-all placeholder-gray-300" autocomplete="off">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-1 tracking-widest">Security PIN (5-Digits)</label>
+                    <div class="p-[5px]">
+                        <div class="flex justify-between gap-2" id="pin-container">
+                            <input type="password" maxlength="1" class="pin-box w-14 h-16 bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 text-center text-xl font-black outline-none transition-all">
+                            <input type="password" maxlength="1" class="pin-box w-14 h-16 bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 text-center text-xl font-black outline-none transition-all">
+                            <input type="password" maxlength="1" class="pin-box w-14 h-16 bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 text-center text-xl font-black outline-none transition-all">
+                            <input type="password" maxlength="1" class="pin-box w-14 h-16 bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 text-center text-xl font-black outline-none transition-all">
+                            <input type="password" maxlength="1" class="pin-box w-14 h-16 bg-white border-2 border-gray-200 focus:border-black focus:bg-gray-50 text-center text-xl font-black outline-none transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 px-[5px]">
+                    <input type="checkbox" id="remember" checked class="w-4 h-4 border-2 border-gray-300 text-black focus:ring-0 rounded-none cursor-pointer">
+                    <label for="remember" class="text-[10px] font-black text-gray-400 uppercase tracking-widest cursor-pointer select-none">Remember Gateway Config</label>
+                </div>
+                
+                <div class="p-[5px]">
+                    <button id="connectBtn" onclick="connect()" 
+                        class="w-full bg-black text-white font-black py-6 rounded-none hover:bg-blue-600 transition-all active:scale-[0.99] text-xs uppercase tracking-[0.3em]">
+                        Connect to Gateway
+                    </button>
+                </div>
+
+                <p class="pt-4 text-[10px] text-gray-300 text-center font-bold uppercase tracking-widest">
+                    Authorized Personnel Only
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const pinBoxes = document.querySelectorAll('.pin-box');
+
+        // PIN Box Logic: Auto-focus next & Backspace support
+        pinBoxes.forEach((box, index) => {
+            box.addEventListener('input', () => {
+                if (box.value.length === 1 && index < pinBoxes.length - 1) {
+                    pinBoxes[index + 1].focus();
+                }
+            });
+            box.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && box.value.length === 0 && index > 0) {
+                    pinBoxes[index - 1].focus();
+                }
+            });
+        });
+
+        window.onload = () => {
+            const savedIp = localStorage.getItem('xtc_remember_ip');
+            const savedPort = localStorage.getItem('xtc_remember_port');
+            if (savedIp) document.getElementById('ip').value = savedIp;
+            if (savedPort) document.getElementById('port').value = savedPort;
+            document.getElementById('user').focus();
+        };
+
+        function notify(message, icon = "⚠️") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = message;
+            document.getElementById('toast-icon').innerText = icon;
+            toast.classList.remove('hidden');
+            toast.classList.add('toast-active');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                toast.classList.remove('toast-active');
+            }, 3000);
+        }
+
+        async function connect() {
+            const btn = document.getElementById('connectBtn');
+            const ip = document.getElementById('ip').value.trim();
+            const port = document.getElementById('port').value.trim() || '8080';
+            const user = document.getElementById('user').value.trim();
+            
+            // Combine PIN from 5 boxes
+            let pin = "";
+            pinBoxes.forEach(box => pin += box.value);
+
+            const remember = document.getElementById('remember').checked;
+
+            if (!ip || !user || pin.length < 5) {
+                notify(pin.length < 5 ? "Complete 5-Digit PIN" : "Missing Credentials");
+                return;
+            }
+
+            btn.innerText = "VERIFYING...";
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`http://${ip}:${port}/login`, {
+                    method: 'POST',
+                    mode: 'cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user, pin })
+                });
+                const result = await res.json();
+
+                if (res.ok) {
+                    if (remember) {
+                        localStorage.setItem('xtc_remember_ip', ip);
+                        localStorage.setItem('xtc_remember_port', port);
+                    }
+                    localStorage.setItem('xtc_session', JSON.stringify({ ip, port, user, pin, room: "", password: "" }));
+                    document.body.style.opacity = '0';
+                    setTimeout(() => window.location.href = '/chat', 300);
+                } else {
+                    notify(result.message || "Auth Failed", "❌");
+                    btn.innerText = "CONNECT TO GATEWAY";
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                notify("Gateway Offline", "📡");
+                btn.innerText = "CONNECT TO GATEWAY";
+                btn.disabled = false;
+            }
+        }
+
+        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') connect(); });
+    </script>
+</body>
+</html>

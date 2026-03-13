@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XtermChat | Messaging</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* Messenger Style Bubbles */
+        .message-bubble { 
+            max-width: 80%; 
+            position: relative; 
+            word-wrap: break-word; 
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .bubble-me {
+            background: linear-gradient(135deg, #0084ff, #0078ff);
+            color: white;
+            border-radius: 18px 18px 4px 18px;
+        }
+        .bubble-them {
+            background: #f0f0f0;
+            color: #1c1e21;
+            border-radius: 18px 18px 18px 4px;
+        }
+
+        /* Link Styling */
+        .chat-link {
+            text-decoration: underline;
+            font-weight: 500;
+        }
+        .bubble-them .chat-link {
+            color: #0084ff;
+        }
+        .bubble-me .chat-link {
+            color: #e0f2fe; /* Light blue for readability on dark blue background */
+        }
+        
+        @media (min-width: 768px) { .message-bubble { max-width: 65%; } }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
+        .chat-container { scroll-behavior: smooth; }
+        
+        #sidebar { 
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+            z-index: 45; 
+            top: 3.5rem; 
+            height: calc(100vh - 3.5rem);
+        }
+        @media (max-width: 767px) {
+            #sidebar.hidden-mobile { transform: translateX(-100%); }
+            #sidebar.show-mobile { transform: translateX(0); }
+        }
+
+        @keyframes slideUp {
+            from { transform: translate(-50%, 100%); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
+        }
+        .toast-active { animation: slideUp 0.3s ease forwards; }
+    </style>
+</head>
+<body class="bg-white text-gray-900 h-screen flex flex-col overflow-hidden">
+
+    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] min-w-[280px] bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4">
+        <div id="toast-icon" class="text-lg">⚠️</div>
+        <div class="flex flex-col">
+            <p id="toast-msg" class="text-xs font-bold leading-tight"></p>
+        </div>
+    </div>
+
+    <header class="h-14 border-b border-gray-100 flex items-center justify-between px-4 md:px-8 bg-white/80 backdrop-blur-md shrink-0 z-[60] sticky top-0">
+        <div class="flex items-center gap-3">
+            <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-xl transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+            <div class="flex items-center gap-3">
+                <div class="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
+                <span class="text-xs md:text-sm font-bold tracking-tight text-gray-800">XtermChat</span>
+            </div>
+        </div>
+        <div class="text-[10px] md:text-[11px] font-bold text-gray-400">
+            <span id="ip-label" class="text-blue-600">---</span>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <div id="overlay" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/10 backdrop-blur-[2px] z-40 md:hidden"></div>
+
+        <aside id="sidebar" class="fixed md:relative w-64 flex flex-col bg-gray-50 md:bg-gray-50/50 border-r border-gray-100 hidden-mobile">
+            <div class="flex-1 overflow-y-auto p-4 scrollbar-hide">
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-3 px-2">Rooms</h3>
+                        <div id="public-rooms" class="space-y-0.5"></div>
+                    </div>
+                    <div>
+                        <h3 class="text-[10px] text-yellow-600 uppercase font-bold tracking-widest mb-3 px-2">Private</h3>
+                        <div id="private-rooms" class="space-y-0.5"></div>
+                    </div>
+                </div>
+
+                <div class="flex items-center mt-24 gap-3 mb-3 px-2">
+                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs uppercase">
+                        <span id="user-initial">K</span>
+                    </div>
+                    <span id="user-label" class="text-xs font-bold text-gray-700 truncate">---</span>
+                </div>
+                <button onclick="logout()" class="w-full py-2.5 text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all active:scale-95 uppercase tracking-wider">
+                    Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-white">
+            <div class="h-14 border-b border-gray-50 flex items-center px-6 justify-between shrink-0">
+                <div class="flex flex-col">
+                    <span class="text-sm font-bold text-gray-900" id="current-room-label">Select a room</span>
+                    <button id="room-status-indicator" onclick="openRoomDetail()" class="hidden items-center gap-1 group">
+                        <span id="current-creator-label" class="text-[9px] text-gray-400 font-bold uppercase group-hover:text-blue-600">---</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="chat-content" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 chat-container">
+                <div id="empty-state" class="h-full flex flex-col items-center justify-center text-gray-300">
+                    <p class="text-[10px] font-bold uppercase tracking-widest">Start a conversation</p>
+                </div>
+            </div>
+
+            <div id="input-container" class="hidden p-4 md:p-6 bg-white shrink-0 border-t border-gray-50">
+                <div class="relative max-w-4xl mx-auto">
+                    <div class="relative flex items-center">
+                        <textarea id="msgInput" rows="1" 
+                            class="flex-1 bg-gray-100 border-0 rounded-[24px] pl-5 pr-14 py-3 text-sm text-gray-900 placeholder-gray-400 focus:ring-0 transition-all font-medium resize-none overflow-y-auto max-h-32" 
+                            placeholder="Aa" autocomplete="off"
+                            style="min-height: 46px;"></textarea>
+                        
+                        <button onclick="sendMessage()" 
+                            class="absolute right-2 bottom-1.5 p-2 text-blue-600 hover:bg-blue-200/50 rounded-full transition-all active:scale-90">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M3.4 20.4l17.45-7.48c.81-.35.81-1.49 0-1.84L3.4 3.6c-.66-.29-1.39.2-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="passwordModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
+        <div class="w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
+            <div class="text-center mb-6">
+                <h3 class="text-lg font-bold text-gray-900" id="modalRoomTitle">Private Access</h3>
+                <p class="text-xs text-gray-400 mt-1">Enter password to join.</p>
+            </div>
+            <input type="password" id="modalPasswordInput" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-4 text-center text-sm focus:ring-0 outline-none mb-6 font-bold" placeholder="••••••••">
+            <div class="flex gap-2">
+                <button onclick="closeModal()" class="flex-1 py-3 text-xs font-bold text-gray-400 uppercase">Cancel</button>
+                <button onclick="confirmPassword()" class="flex-1 py-3 bg-blue-600 text-white text-xs font-bold uppercase rounded-xl">Join</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="roomDetailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
+        <div class="w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-lg font-bold text-gray-900 mb-4" id="detailRoomName">Room Detail</h3>
+            <div class="space-y-4 mb-6">
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase">Creator</span>
+                    <p id="detailRoomCreator" class="text-sm font-bold">---</p>
+                </div>
+                <div>
+                    <span class="text-[10px] font-bold text-gray-400 uppercase">Description</span>
+                    <p id="detailRoomDesc" class="text-sm text-gray-600 italic">No description.</p>
+                </div>
+            </div>
+            <button onclick="closeRoomDetail()" class="w-full py-3 bg-gray-900 text-white text-xs font-bold uppercase rounded-xl">Close</button>
+        </div>
+    </div>
+
+    <script>
+        const session = JSON.parse(localStorage.getItem('xtc_session'));
+        if (!session) window.location.href = '/';
+
+        const API_URL = `http://${session.ip}:${session.port}`;
+        let currentRoom = ""; 
+        let currentUser = session.user;
+        let currentPassword = "";
+        let pendingRoom = "";
+        let isUserScrolling = false;
+        let allRoomsData = [];
+
+        const EMOJI_MAP = {
+            ":fire": "🔥", ":nice": "👍", ":cool": "😎", ":rocket": "🚀", ":laugh": "😂",
+            ":check": "✅", ":warn": "⚠️", ":heart": "❤️", ":star": "⭐", ":ghost": "👻",
+            ":smile": "😊", ":party": "🎉", ":pray": "🙏", ":100": "💯", ":eyes": "👀"
+        };
+
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const chatContent = document.getElementById('chat-content');
+        const msgInput = document.getElementById('msgInput');
+
+        document.getElementById('ip-label').innerText = session.ip;
+        document.getElementById('user-label').innerText = currentUser;
+        document.getElementById('user-initial').innerText = currentUser.charAt(0).toUpperCase();
+
+        // --- URL DETECTION ENGINE ---
+        function parseURLs(text) {
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            return text.replace(urlRegex, function(url) {
+                return `<a href="${url}" target="_blank" class="chat-link">${url}</a>`;
+            });
+        }
+
+        function notify(message, icon = "⚠️") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-msg').innerText = message;
+            document.getElementById('toast-icon').innerText = icon;
+            toast.classList.remove('hidden');
+            toast.classList.add('toast-active');
+            setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('toast-active'); }, 3000);
+        }
+
+        function toggleSidebar() {
+            if (window.innerWidth >= 768) return;
+            const isHidden = sidebar.classList.contains('hidden-mobile');
+            sidebar.classList.toggle('hidden-mobile', !isHidden);
+            sidebar.classList.toggle('show-mobile', isHidden);
+            overlay.classList.toggle('hidden', !isHidden);
+        }
+
+        msgInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = (this.scrollHeight) + 'px';
+        });
+
+        msgInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                if (!e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            }
+        });
+
+        async function fetchRooms() {
+            try {
+                const res = await fetch(`${API_URL}/rooms`);
+                const data = await res.json();
+                allRoomsData = data.rooms;
+                const publicDiv = document.getElementById('public-rooms');
+                const privateDiv = document.getElementById('private-rooms');
+                let publicHTML = "", privateHTML = "";
+
+                data.rooms.forEach(r => {
+                    const isActive = r.name === currentRoom;
+                    const hasPass = r.has_password === true || r.has_password === 1 || String(r.has_password) === "true";
+                    const styleClass = isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-200';
+                    const item = `<div onclick="handleRoomClick('${r.name}', ${hasPass})" class="cursor-pointer px-3 py-2.5 rounded-xl transition-all flex items-center justify-between text-xs font-bold ${styleClass}"><span class="truncate"># ${r.name}</span>${hasPass ? '🔒' : ''}</div>`;
+                    if (hasPass) privateHTML += item; else publicHTML += item;
+                    if(isActive) document.getElementById('current-creator-label').innerText = `Created by ${r.creator || 'SYSTEM'}`;
+                });
+                publicDiv.innerHTML = publicHTML || '<p class="text-[9px] text-gray-400 p-2 italic">No rooms</p>';
+                privateDiv.innerHTML = privateHTML || '<p class="text-[9px] text-gray-400 p-2 italic">No private rooms</p>';
+            } catch (err) {}
+        }
+
+        function openRoomDetail() {
+            const roomData = allRoomsData.find(r => r.name === currentRoom);
+            if (!roomData) return;
+            document.getElementById('detailRoomName').innerText = `#${roomData.name}`;
+            document.getElementById('detailRoomCreator').innerText = roomData.creator || 'UNKNOWN';
+            document.getElementById('detailRoomDesc').innerText = roomData.description || 'No description.';
+            document.getElementById('roomDetailModal').classList.remove('hidden');
+        }
+
+        function closeRoomDetail() { document.getElementById('roomDetailModal').classList.add('hidden'); }
+
+        function handleRoomClick(name, isPrivate) {
+            if (window.innerWidth < 768) toggleSidebar(); 
+            if (isPrivate && name !== currentRoom) {
+                pendingRoom = name;
+                document.getElementById('modalRoomTitle').innerText = `#${name}`;
+                document.getElementById('passwordModal').classList.remove('hidden');
+            } else if (name !== currentRoom) { switchRoom(name, ""); }
+        }
+
+        function closeModal() { document.getElementById('passwordModal').classList.add('hidden'); pendingRoom = ""; }
+
+        async function confirmPassword() {
+            const pass = document.getElementById('modalPasswordInput').value;
+            await switchRoom(pendingRoom, pass);
+        }
+
+        async function switchRoom(name, pass) {
+            try {
+                const res = await fetch(`${API_URL}/messages/${name}?password=${pass}`);
+                if (!res.ok) { notify("Invalid Password", "❌"); return; }
+                
+                currentRoom = name; 
+                currentPassword = pass;
+
+                document.getElementById('current-room-label').innerText = `#${name}`;
+                
+                const emptyState = document.getElementById('empty-state');
+                if (emptyState) emptyState.remove();
+
+                document.getElementById('room-status-indicator').classList.remove('hidden');
+                document.getElementById('room-status-indicator').classList.add('flex');
+                
+                const inputContainer = document.getElementById('input-container');
+                inputContainer.classList.remove('hidden');
+
+                closeModal(); 
+                chatContent.innerHTML = ""; 
+                fetchMessages(true); 
+                fetchRooms();
+                
+                setTimeout(() => msgInput.focus(), 100);
+            } catch (e) { notify("Gateway error"); }
+        }
+
+        function formatTime(timestamp) {
+            if (!timestamp) return "";
+            try {
+                let cleanTS = timestamp.replace(' ', 'T');
+                if (!cleanTS.includes('Z')) cleanTS += 'Z';
+                const date = new Date(cleanTS);
+                const now = new Date();
+                const diff = Math.floor(Math.abs(now - date) / 1000);
+                if (diff < 60) return "Just now";
+                if (diff < 3600) return `${Math.floor(diff/60)}m`;
+                if (diff < 86400) return `${Math.floor(diff/3600)}h`;
+                return date.toLocaleDateString();
+            } catch (e) { return ""; }
+        }
+
+        async function fetchMessages(forceScroll = false) {
+            if (!currentRoom) return;
+            try {
+                const res = await fetch(`${API_URL}/messages/${currentRoom}?password=${currentPassword}`);
+                const data = await res.json();
+                const prevCount = chatContent.children.length;
+                chatContent.innerHTML = data.map(m => {
+                    const isMe = m.sender.toLowerCase() === currentUser.toLowerCase() && String(m.pin) === String(session.pin);
+                    const time = formatTime(m.timestamp); 
+                    const content = parseURLs(m.content);
+                    return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full">
+                        <span class="text-[9px] font-bold text-gray-400 mb-1 px-2 uppercase">${isMe ? '' : m.sender + ' • '}${time}</span>
+                        <div class="message-bubble px-4 py-2.5 ${isMe ? 'bubble-me' : 'bubble-them'}" style="white-space: pre-wrap;">${content}</div>
+                    </div>`;
+                }).join('');
+                if (forceScroll || (!isUserScrolling && data.length > prevCount)) chatContent.scrollTop = chatContent.scrollHeight;
+            } catch (e) {}
+        }
+
+        async function sendMessage() {
+            let content = msgInput.value.trim();
+            if (!content || !currentRoom) return;
+            for (const [code, icon] of Object.entries(EMOJI_MAP)) content = content.split(code).join(icon);
+            try {
+                await fetch(`${API_URL}/send`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ room: currentRoom, user: currentUser, pin: session.pin, content, password: currentPassword })
+                });
+                msgInput.value = ''; 
+                msgInput.style.height = 'auto';
+                fetchMessages(true);
+            } catch (e) {
+                notify("Failed to send message");
+            }
+        }
+
+        function logout() { localStorage.removeItem('xtc_session'); window.location.href = '/'; }
+        
+        setInterval(fetchMessages, 2000); 
+        setInterval(fetchRooms, 5000); 
+        fetchRooms();
+    </script>
+</body>
+</html>

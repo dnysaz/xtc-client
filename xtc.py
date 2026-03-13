@@ -77,6 +77,27 @@ def main():
         chat.run(sys.argv[2:])
     elif cmd in ["help", "--help", "-h"]:
         show_help()
+    elif cmd == "start:web":
+        import subprocess
+        import os
+        
+        # Mengambil path absolut dari folder tempat xtc.py berada
+        # Meskipun dijalankan lewat symlink di /usr/local/bin
+        base_path = os.path.dirname(os.path.realpath(__file__))
+        web_script = os.path.join(base_path, "web", "app.py")
+        
+        if not os.path.exists(web_script):
+            print(f"\033[31m[!] ERROR: Web module not found at {web_script}\033[0m")
+            return
+
+        print("\n\033[1;32m[*] Starting XtermChat Web Gateway...\033[0m")
+        print("\033[36m[*] URL: http://localhost:5000\033[0m")
+        
+        try:
+            # Jalankan dengan mengganti directory kerja ke folder web agar Flask tidak bingung
+            subprocess.run([sys.executable, web_script], cwd=os.path.join(base_path, "web"))
+        except KeyboardInterrupt:
+            print("\n\033[31m[*] Web Gateway stopped.\033[0m")
     else:
         print(f"\n\033[1;31m[!] ERROR: '{cmd}' is not a valid operation.\033[0m")
         show_help()

@@ -2,21 +2,19 @@ import requests
 from utils import load_config
 
 def run(args):
-    """Menampilkan daftar public room yang tidak memiliki password."""
+    """Menampilkan daftar room dari gateway dengan status akses yang benar."""
     url = load_config()
     
     if not url:
         print("\033[31m[!] ERROR: No active server connection.\033[0m")
         return
 
-    # Bersihkan URL dari trailing slash
     url = url.rstrip('/')
 
-    print("\n\033[1m XTERMCHAT PUBLIC GATEWAY \033[0m")
+    print("\n\033[1m XTERMCHAT GATEWAY SERVICES \033[0m")
     print("\033[2m" + "─"*45 + "\033[0m")
 
     try:
-        # Request ke endpoint /rooms di Ubuntu
         res = requests.get(f"{url}/rooms", timeout=5)
         
         if res.status_code == 200:
@@ -24,7 +22,7 @@ def run(args):
             rooms = data.get("rooms", [])
             
             if not rooms:
-                print(" \033[33mNo public rooms available at the moment.\033[0m")
+                print(" \033[33mNo rooms available at the moment.\033[0m")
             else:
                 # Header Tabel
                 print(f" \033[2m{'ID':<4} {'ROOM NAME':<20} {'ACCESS':<10}\033[0m")
@@ -32,10 +30,21 @@ def run(args):
                 
                 for i, room in enumerate(rooms, 1):
                     room_name = room.get('name', 'unknown')
-                    # Menggunakan warna hijau untuk kesan 'Open'
-                    print(f" {i:<4} \033[1;32m@{room_name:<20}\033[0m \033[32mOPEN\033[0m")
+                    # Cek flag has_password dari server
+                    is_secured = room.get('has_password', False)
+                    
+                    if is_secured:
+                        access_status = "LOCKED"
+                        color = "\033[1;33m" # Kuning Tebal
+                        status_color = "\033[33m"
+                    else:
+                        access_status = "OPEN"
+                        color = "\033[1;32m" # Hijau Tebal
+                        status_color = "\033[32m"
+
+                    print(f" {i:<4} {color}@{room_name:<20}\033[0m {status_color}{access_status}\033[0m")
             
-            print(f"\n Total: {data.get('count', 0)} public access point(s)")
+            print(f"\n Total: {data.get('count', 0)} gateway access point(s)")
             
         else:
             print(f" \033[1;31m[!] SERVER_ERROR: {res.status_code}\033[0m")

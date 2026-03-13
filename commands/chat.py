@@ -3,146 +3,120 @@ import time
 import requests
 import getpass
 import re
-import shutil
 import socket
+import subprocess
 from datetime import datetime, timezone
 
 from prompt_toolkit.application import Application
-from prompt_toolkit.layout.containers import HSplit, VSplit, Window
+from prompt_toolkit.layout.containers import HSplit, VSplit, Window, Float, FloatContainer, ConditionalContainer
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.key_binding import KeyBindings
-from prompt_toolkit.widgets import TextArea
+from prompt_toolkit.widgets import TextArea, Frame
 from prompt_toolkit.document import Document
 from prompt_toolkit.formatted_text import HTML, to_formatted_text
 from prompt_toolkit.styles import Style
-from prompt_toolkit.filters import HasFocus
+from prompt_toolkit.filters import Condition, HasFocus
 
 from utils import load_config, clean_arg, save_config
 
 url_regex = re.compile(r"(https?://[^\s]+)")
 
-# Emoji Dictionary
 EMOJI_MAP = {
-    ":fire": "🔥",
-    ":nice": "👍",
-    ":cool": "😎",
-    ":rocket": "🚀",
-    ":laugh": "😂",
-    ":warn": "⚠️",
-    ":check": "✅",
-    ":heart": "❤️",
-    ":star": "⭐",
-    ":ghost": "👻"
+    ":fire": "🔥", ":nice": "👍", ":cool": "😎", ":rocket": "🚀", ":laugh": "😂",
+    ":warn": "⚠️", ":check": "✅", ":heart": "❤️", ":star": "⭐", ":ghost": "👻"
 }
+
+def get_hw_id():
+    try:
+        cmd = "ioreg -rd1 -c IOPlatformExpertDevice | grep -E 'IOPlatformUUID' | awk '{print $3}' | tr -d '\"'"
+        uuid = subprocess.check_output(cmd, shell=True).decode().strip()
+        return uuid
+    except:
+        return socket.gethostname()
+
+CLI_PIN = get_hw_id()
 
 def get_human_time(ts):
     now = datetime.now(timezone.utc)
     diff = (now - ts).total_seconds()
-
-    if diff < 60: 
-        return "a sec.."
-    if diff < 3600: 
-        return f"{int(diff // 60)}m"
-    if diff < 86400: 
-        return f"{int(diff // 3600)}h"
-    
-    if ts.date() != now.date():
-        return ts.strftime("%d %b")
-        
+    if diff < 60: return "now"
+    if diff < 3600: return f"{int(diff // 60)}m"
     return ts.strftime("%H:%M")
 
 def get_public_ip():
     try:
         return requests.get('https://api.ipify.org', timeout=3).text
     except:
-        return "ERR_CONN"
+        return "OFFLINE"
 
 def run(args):
     raw_url = load_config()
-    
     if not raw_url:
-        print("\033[31m[!] ERROR: No active server connection.\033[0m")
-        print("    Please run: \033[32mxtc connect @<server_ip>\033[0m")
+        print("\033[31m[!] ERROR: No server connection.\033[0m")
         return
 
     url = raw_url.rstrip('/') 
-    
     if not args:
-        print("Usage: xtc start:chat @<room_name>")
+        print("Usage: xtc start:chat @room")
         return
 
     room = clean_arg(args[0])
     password = args[1] if len(args) > 1 else "" 
-    user = getpass.getuser()
+    user = getpass.getuser()[:5].upper()
     
     try:
-        server_host = url.split("//")[-1].split(":")[0]
-        server_ip = socket.gethostbyname(server_host)
+        res = requests.post(f"{url}/verify-room", json={"room": room, "password": password}, timeout=5)
+        if res.status_code == 404:
+            print(f"\033[31m[!] ERROR: Room '@{room}' not found.\033[0m")
+            return
+        if res.status_code == 403:
+            print(f"\n\033[33m> This room is private, please enter the Room password :\033[0m")
+            password = getpass.getpass("  Password: ")
+            res = requests.post(f"{url}/verify-room", json={"room": room, "password": password}, timeout=5)
+            if res.status_code != 200:
+                print(f"\033[31m[!] ACCESS DENIED: Invalid password.\033[0m")
+                return
+        if res.status_code != 200:
+            print(f"\033[31m[!] SERVER ERROR: {res.status_code}\033[0m")
+            return
+    except Exception as e:
+        print(f"\033[31m[!] CONNECTION FAILED: {e}\033[0m")
+        return
+
+    try:
+        server_ip = socket.gethostbyname(url.split("//")[-1].split(":")[0])
     except:
         server_ip = "127.0.0.1"
     
     my_ip = get_public_ip()
+    room_details = {"creator": "---", "description": "No description available."}
 
-    attempts = 0
-    max_attempts = 3
-    
-    while True:
-        try:
-            res = requests.post(f"{url}/verify-room", json={"room": room, "password": password}, timeout=5)
-            
-            if res.status_code == 200:
-                break
-            
-            elif res.status_code == 403:
-                if password != "":
-                    attempts += 1
-                
-                if attempts >= max_attempts:
-                    print(f"\n\033[1;31m[!] SECURITY ALERT: {max_attempts} failed attempts.\033[0m")
-                    print("\033[31m[!] Disconnecting from server for security reasons...\033[0m")
-                    save_config("") 
-                    return
+    try:
+        r_info = requests.get(f"{url}/rooms", timeout=3).json()
+        for r in r_info.get('rooms', []):
+            if r['name'] == room:
+                room_details['creator'] = r.get('creator', 'SYSTEM')[:10].upper()
+                room_details['description'] = r.get('description', 'No description.')
+    except: pass
 
-                if attempts > 0:
-                    print(f"\033[33m[!] Invalid password ({attempts}/{max_attempts})\033[0m")
-                
-                password = getpass.getpass("\033[31m[!] Password required: \033[0m")
-                
-                if not password:
-                    print("[*] Access denied. Password cannot be empty.")
-                    return
-                continue
-            
-            elif res.status_code == 404:
-                print(f"\033[31m[!] ERROR: Room '@{room}' not found.\033[0m")
-                return
+    # UI Components
+    chat_area = TextArea(read_only=True, scrollbar=True, wrap_lines=True, style="class:chat-content")
+    input_area = TextArea(height=4, multiline=True, prompt=" Message ❯❯❯ ", style="class:input-text")
+    right_sidebar_area = TextArea(read_only=True, focusable=False, wrap_lines=True, style="class:sidebar")
 
-            else:
-                print(f"[!] SERVER_ERROR: Received status {res.status_code} from {server_ip}")
-                return
+    show_emoji_modal = [False]
 
-        except requests.exceptions.ConnectionError:
-            print(f"\033[31m[!] OFFLINE: Cannot connect to {server_ip}.\033[0m")
-            return
-        except requests.exceptions.Timeout:
-            print(f"\033[31m[!] TIMEOUT: Server at {server_ip} is taking too long to respond.\033[0m")
-            return
-        except Exception as e:
-            print(f"[!] UNEXPECTED_ERROR: {e}")
-            return
-
-    chat_area = TextArea(read_only=True, scrollbar=True, wrap_lines=True, focusable=True, style="class:chat-content")
-    input_area = TextArea(height=8, multiline=True, prompt=" Message >> ", style="class:input-text")
+    emoji_list_text = "\n".join([f" <me>{k:8}</me> <white>{v}</white>" for k, v in EMOJI_MAP.items()])
+    emoji_modal_content = TextArea(
+        text="".join([t for s, t in to_formatted_text(HTML(f"<b>EMOJI SHORTCUTS</b>\n\n{emoji_list_text}"))]),
+        read_only=True, width=30, height=14, style="class:modal"
+    )
+    emoji_modal = Frame(emoji_modal_content, style="class:modal-border")
 
     def get_header_text():
         now = datetime.now().strftime('%H:%M:%S')
-        return f" | XtermChat v1.0 | {server_ip} | {now} "
-
-    def clock_scheduler(app):
-        while True:
-            time.sleep(1)
-            app.invalidate()
+        return f"  XtermChat-CLI  |  NODE: {socket.gethostname()}  |  {server_ip}  "
 
     def fetch_messages(app):
         nonlocal password
@@ -155,26 +129,24 @@ def run(args):
                     if msgs != last_msgs:
                         lines = [""]
                         for m in msgs:
-                            db_time = m.get("created_at") or m.get("timestamp")
-                            if db_time:
-                                ts = datetime.fromisoformat(db_time.replace("Z", "+00:00"))
-                            else:
-                                ts = datetime.now(timezone.utc)
-                            
+                            db_time = m.get("timestamp")
+                            try: ts = datetime.strptime(db_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+                            except: ts = datetime.now(timezone.utc)
                             t_str = get_human_time(ts)
-                            content = url_regex.sub(r' <u>\g<0></u> ', m.get("content", ""))
-                            
-                            is_me = m['sender'] == user
-                            s_style = "me" if is_me else "sender"
-                            
-                            line = f"<dim>[</dim> <time>{t_str:4}</time> <dim>]</dim> <{s_style}>{m['sender'][:10]:10}</{s_style}> <dim>❯</dim> {content}"
+                            processed_content = url_regex.sub(r'<u>\g<0></u>', m.get("content", ""))
+                            is_me = (m['sender'].lower() == user.lower() or str(m.get('pin')) == str(CLI_PIN))
+                            if is_me:
+                                line = f" <time>{t_str:4}</time> <me>YOU</me> <dim>❯</dim> <me_text>{processed_content}</me_text>"
+                            else:
+                                line = f" <time>{t_str:4}</time> <sender>{m['sender'][:5]:5}</sender> <dim>❯</dim> {processed_content}"
                             lines.append(line)
                         
-                        for _ in range(4): lines.append("")
-
+                        # --- UPDATE: MENAMBAHKAN JARAK 5 BARIS DI AKHIR ---
+                        lines.extend([""] * 5) 
                         full_text = "".join([t for s, t in to_formatted_text(HTML("\n".join(lines)))])
-                        new_cursor_pos = len(full_text) if len(msgs) > len(last_msgs) else chat_area.buffer.cursor_position
-                        chat_area.buffer.set_document(Document(text=full_text, cursor_position=new_cursor_pos), bypass_readonly=True)
+                        
+                        # Set document dan kunci posisi ke pesan terakhir (sebelum padding baris kosong)
+                        chat_area.buffer.set_document(Document(text=full_text, cursor_position=len(full_text)), bypass_readonly=True)
                         last_msgs = msgs
                         app.invalidate()
             except: pass
@@ -183,75 +155,93 @@ def run(args):
     kb = KeyBindings()
     @kb.add("c-c")
     def _(event): event.app.exit()
+
+    @kb.add("escape")
+    def _(event):
+        show_emoji_modal[0] = False
+        event.app.invalidate()
+
+    # Navigasi Scroll Manual via Keyboard
+    @kb.add("pageup")
+    def _(event):
+        chat_area.control.scroll_to_position((chat_area.control.vertical_scroll - 5, 0))
+
+    @kb.add("pagedown")
+    def _(event):
+        chat_area.control.scroll_to_position((chat_area.control.vertical_scroll + 5, 0))
+
     @kb.add("enter", filter=HasFocus(input_area))
     def _(event):
         msg = input_area.text.strip()
-        if not msg:
-            return
-
-        # Handle List Emoji Shortcut
+        if not msg: return
         if msg == ":e":
-            help_text = "\n <dim>❯ SYSTEM:</dim> <me>Available Emoji Shortcuts:</me>\n"
-            for code, icon in EMOJI_MAP.items():
-                help_text += f"   <dim>-</dim> {code:8} <sender>{icon}</sender>\n"
-            
-            current_text = chat_area.text
-            new_text = current_text + "".join([t for s, t in to_formatted_text(HTML(help_text))])
-            chat_area.buffer.set_document(Document(text=new_text, cursor_position=len(new_text)), bypass_readonly=True)
+            show_emoji_modal[0] = not show_emoji_modal[0]
             input_area.text = ""
+            event.app.invalidate()
             return
-
-        # Replace Emoji Shortcuts
-        for code, icon in EMOJI_MAP.items():
-            msg = msg.replace(code, icon)
-
+        for code, icon in EMOJI_MAP.items(): msg = msg.replace(code, icon)
         try:
-            requests.post(f"{url}/send", json={"room": room, "password": password, "user": user, "content": msg}, timeout=5)
+            payload = {"room": room, "password": password, "user": user, "content": msg, "pin": CLI_PIN}
+            requests.post(f"{url}/send", json=payload, timeout=5)
             input_area.text = ""
         except: pass
 
     style = Style.from_dict({
-        '': '#00ff00 bg:#000000',
-        'chat-content': 'bg:#080808',
-        'u': '#00ffff underline bold', 
-        'time': '#008800 bold',
-        'sender': '#00ff00 bold',
-        'me': '#00ffff bold', 
-        'dim': '#004400',
-        'header': 'bg:#00ff00 #000000 bold',
-        'sidebar': 'bg:#000000 #00bb00',
-        'sidebar.label': '#004400',
-        'input-text': '#00ff00 bg:#000000',
-        'status': 'bg:#002200 #00ff00 italic',
+        '': '#ffffff bg:#000000',
+        'chat-content': 'bg:#050505',
+        'header': 'bg:#0084ff #ffffff bold',
+        'sidebar': 'bg:#0a0a0a #666666',
+        'sidebar.label': '#444444 bold',
+        'sidebar.val': '#0084ff bold',
+        'time': '#333333',
+        'sender': '#ffffff bold',
+        'me': '#0084ff bold',
+        'me_text': '#00aaff',
+        'dim': '#222222',
+        'input-text': 'bg:#000000 #ffffff',
+        'status': 'bg:#000000 #333333 italic',
+        'modal': 'bg:#111111 #ffffff',
+        'modal-border': '#0084ff bold',
     })
 
-    sidebar_content = HTML(
-        f"\n<sidebar.label>  ROOM </sidebar.label>\n"
-        f"  {room.upper()[:12]}\n\n"
-        f"<sidebar.label>  USER </sidebar.label>\n"
-        f"  {user[:12]}\n\n"
-        f"<sidebar.label>  SRV_IP </sidebar.label>\n"
+    left_side = HTML(
+        f"\n <sidebar.label>ID</sidebar.label>\n"
+        f" <sidebar.val> {user}</sidebar.val>\n\n"
+        f" <sidebar.label>GATEWAY</sidebar.label>\n"
         f"  {server_ip}\n\n"
-        f"<sidebar.label>  MY_IP </sidebar.label>\n"
+        f" <sidebar.label>PUB_IP</sidebar.label>\n"
         f"  {my_ip}\n\n"
-        f"<sidebar.label>  STATUS </sidebar.label>\n"
-        f"  ONLINE"
+        f" <sidebar.label>AUTH</sidebar.label>\n"
+        f" <me> LOCKED</me>"
     )
 
-    layout = Layout(HSplit([
-        Window(height=1, style="class:header", content=FormattedTextControl(text=get_header_text)),
-        VSplit([
-            Window(width=20, content=FormattedTextControl(sidebar_content), style="class:sidebar"),
-            Window(width=1, char="│", style="class:dim"),
-            chat_area,
-        ]),
-        Window(height=1, style="class:status", content=FormattedTextControl(text=" [MOUSE SCROLL] HISTORY | [ENTER] SEND | [:e] EMOJIS | [CTRL+C] EXIT ")),
-        input_area
-    ]))
+    right_side_html = f"\n <sidebar.label>CHANNEL</sidebar.label>\n <sidebar.val> #{room[:10].upper()}</sidebar.val>\n\n <sidebar.label>CREATOR</sidebar.label>\n  {room_details['creator']}\n\n <sidebar.label>ABOUT</sidebar.label>\n <white>{room_details['description']}</white>"
+    right_sidebar_area.buffer.set_document(Document(text="".join([t for s, t in to_formatted_text(HTML(right_side_html))])), bypass_readonly=True)
 
-    app = Application(layout=layout, key_bindings=kb, full_screen=True, style=style, mouse_support=True)
+    body = VSplit([
+        Window(width=20, content=FormattedTextControl(left_side), style="class:sidebar"),
+        Window(width=1, char="│", style="class:dim"),
+        chat_area,
+        Window(width=1, char="│", style="class:dim"),
+        Window(width=28, content=right_sidebar_area.control, style="class:sidebar"),
+    ])
+
+    root_container = FloatContainer(
+        content=HSplit([
+            Window(height=1, style="class:header", content=FormattedTextControl(text=get_header_text)),
+            body,
+            Window(height=1, style="class:status", content=FormattedTextControl(text=" [PGUP/PGDN] SCROLL | [ESC] CLOSE | [ENTER] SEND ")),
+            input_area
+        ]),
+        floats=[
+            Float(content=ConditionalContainer(
+                content=emoji_modal,
+                filter=Condition(lambda: show_emoji_modal[0])
+            ))
+        ]
+    )
+
+    app = Application(layout=Layout(root_container), key_bindings=kb, full_screen=True, style=style, mouse_support=True)
     app.layout.focus(input_area)
-    
     threading.Thread(target=fetch_messages, args=(app,), daemon=True).start()
-    threading.Thread(target=clock_scheduler, args=(app,), daemon=True).start()
     app.run()
