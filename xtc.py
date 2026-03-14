@@ -3,7 +3,7 @@ import sys
 import os
 import shutil
 import subprocess
-from commands import connect, disconnect, status, create, delete, chat, listRooms, bot, bot_stop
+from commands import connect, disconnect, status, create, delete, chat, listRooms, bot, bot_stop, listBots, deleteBot
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -52,8 +52,10 @@ def show_help():
             ("start:web",   "Open web interface"),
         ]),
         ("BOT", [
+            ("list:bots",   "List all registered bots"),
             ("start:bot",   "Start a monitoring bot on this server"),
             ("stop:bot",    "Stop a running bot  (stop:bot <id>)"),
+            ("delete:bot",  "Delete a bot  (delete:bot <id> or all)"),
         ]),
     ]
 
@@ -73,7 +75,7 @@ def show_help():
         ("xtc start:chat", "@general"),
         ("xtc delete:room","@general"),
         ("xtc start:web",  ""),
-        ("xtc start:bot",  ""),
+        ("xtc list:bots", ""),
         ("xtc stop:bot",   "1"),
     ]
     for cmd, arg in examples:
@@ -117,11 +119,17 @@ def main():
     elif cmd == "start:chat":
         chat.run(sys.argv[2:])
 
+    elif cmd == "list:bots":
+        listBots.run(sys.argv[2:])
+
     elif cmd == "start:bot":
         bot.run(sys.argv[2:])
 
     elif cmd == "stop:bot":
         bot_stop.run(sys.argv[2:])
+
+    elif cmd == "delete:bot":
+        deleteBot.run(sys.argv[2:])
 
     elif cmd in ("help", "--help", "-h"):
         show_help()
