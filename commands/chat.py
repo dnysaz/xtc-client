@@ -8,15 +8,20 @@ import subprocess
 from datetime import datetime, timezone
 
 from prompt_toolkit.application import Application
-from prompt_toolkit.layout.containers import HSplit, VSplit, Window, Float, FloatContainer, ConditionalContainer
+from prompt_toolkit.layout.containers import (
+    HSplit, VSplit, Window, Float, FloatContainer, ConditionalContainer
+)
 from prompt_toolkit.layout.controls import FormattedTextControl
 from prompt_toolkit.layout.layout import Layout
 from prompt_toolkit.key_binding import KeyBindings
 from prompt_toolkit.widgets import TextArea, Frame
 from prompt_toolkit.document import Document
-from prompt_toolkit.formatted_text import HTML, to_formatted_text
+from prompt_toolkit.formatted_text import HTML, to_formatted_text, FormattedText
 from prompt_toolkit.styles import Style
 from prompt_toolkit.filters import Condition, HasFocus
+from prompt_toolkit.mouse_events import MouseEventType
+from prompt_toolkit.lexers import Lexer
+from prompt_toolkit.selection import SelectionType
 
 from utils import load_config, clean_arg, save_config
 
@@ -31,6 +36,8 @@ EMOJI_MAP = {
     ":globe": "🌐", ":key": "🔑", ":box": "📦", ":link": "🔗", ":top": "🔝"
 }
 
+# ─── Utilities ────────────────────────────────────────────────────────────────
+
 def get_hw_id():
     try:
         cmd = "ioreg -rd1 -c IOPlatformExpertDevice | grep -E 'IOPlatformUUID' | awk '{print $3}' | tr -d '\"'"
@@ -42,7 +49,6 @@ def get_hw_id():
 CLI_PIN = get_hw_id()
 
 def format_date_simple(ts_int):
-    """Helper untuk format tanggal di sidebar."""
     if not ts_int or ts_int == 0: return "N/A"
     try:
         return datetime.fromtimestamp(ts_int).strftime('%d %b %Y')
@@ -62,21 +68,157 @@ def get_public_ip():
     except:
         return "OFFLINE"
 
+def open_url(url):
+    try:
+        import platform
+        system = platform.system()
+        if system == "Darwin":
+            subprocess.Popen(["open", url])
+        elif system == "Linux":
+            subprocess.Popen(["xdg-open", url])
+        elif system == "Windows":
+            subprocess.Popen(["start", url], shell=True)
+    except Exception:
+        pass
+
+def copy_to_clipboard(text):
+    try:
+        import platform
+        system = platform.system()
+        if system == "Darwin":
+            proc = subprocess.Popen(["pbcopy"], stdin=subprocess.PIPE)
+            proc.communicate(text.encode("utf-8"))
+        elif system == "Linux":
+            try:
+                proc = subprocess.Popen(["xclip", "-selection", "clipboard"], stdin=subprocess.PIPE)
+                proc.communicate(text.encode("utf-8"))
+            except FileNotFoundError:
+                proc = subprocess.Popen(["xsel", "--clipboard", "--input"], stdin=subprocess.PIPE)
+                proc.communicate(text.encode("utf-8"))
+        elif system == "Windows":
+            proc = subprocess.Popen(["clip"], stdin=subprocess.PIPE, shell=True)
+            proc.communicate(text.encode("utf-8"))
+        return True
+    except Exception:
+        return False
+
+
+# ─── Link Registry ────────────────────────────────────────────────────────────
+
+class LinkRegistry:
+    def __init__(self):
+        self._links: list[tuple[int, int, str]] = []
+
+    def clear(self):
+        self._links.clear()
+
+    def register(self, start: int, end: int, url: str):
+        self._links.append((start, end, url))
+
+    def find(self, pos: int):
+        for start, end, url in self._links:
+            if start <= pos < end:
+                return url
+        return None
+
+
+# ─── Chat Lexer ───────────────────────────────────────────────────────────────
+
+class ChatLexer(Lexer):
+    def __init__(self, get_lines):
+        self._get = get_lines
+
+    def lex_document(self, document):
+        lines = self._get()
+        def get_line(lineno):
+            if lineno < len(lines):
+                return lines[lineno]
+            return []
+        return get_line
+
+
+# ─── Build Formatted Lines ────────────────────────────────────────────────────
+
+def build_formatted_lines(msgs, user, link_registry):
+    link_registry.clear()
+    plain_lines = [""]
+    fmt_lines   = [[("class:dim", "")]]
+    char_pos    = 1
+
+    for m in msgs:
+        db_time = m.get("timestamp")
+        try:
+            ts = datetime.strptime(db_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        except:
+            ts = datetime.now(timezone.utc)
+
+        t_str   = get_human_time(ts)
+        content = m.get("content", "")
+        is_me   = (m['sender'].lower() == user.lower() or str(m.get('pin')) == str(CLI_PIN))
+
+        frags       = []
+        plain_parts = []
+
+        if is_me:
+            prefix = f" {t_str:4} You ❯ "
+            frags += [
+                ("class:time", f" {t_str:4} "),
+                ("class:me",   "You"),
+                ("class:dim",  " ❯ "),
+            ]
+        else:
+            sender = m['sender'][:5]
+            prefix = f" {t_str:4} {sender:5} ❯ "
+            frags += [
+                ("class:time",   f" {t_str:4} "),
+                ("class:sender", f"{sender:5}"),
+                ("class:dim",    " ❯ "),
+            ]
+        plain_parts.append(prefix)
+
+        parts = url_regex.split(content)
+        for part in parts:
+            if not part:
+                continue
+            if url_regex.match(part):
+                offset     = char_pos + len("".join(plain_parts))
+                link_registry.register(offset, offset + len(part), part)
+                frags.append(("class:link", part))
+                plain_parts.append(part)
+            else:
+                style_cls = "class:me_text" if is_me else ""
+                frags.append((style_cls, part))
+                plain_parts.append(part)
+
+        plain_line = "".join(plain_parts)
+        plain_lines.append(plain_line)
+        fmt_lines.append(frags)
+        char_pos += len(plain_line) + 1
+
+    for _ in range(5):
+        plain_lines.append("")
+        fmt_lines.append([("", "")])
+
+    return "\n".join(plain_lines), fmt_lines
+
+
+# ─── Main Run ─────────────────────────────────────────────────────────────────
+
 def run(args):
     raw_url = load_config()
     if not raw_url:
         print("\033[31m[!] ERROR: No server connection.\033[0m")
         return
 
-    url = raw_url.rstrip('/') 
+    url = raw_url.rstrip('/')
     if not args:
         print("Usage: xtc start:chat @room")
         return
 
-    room = clean_arg(args[0])
-    password = args[1] if len(args) > 1 else "" 
-    user = getpass.getuser()[:5].upper()
-    
+    room     = clean_arg(args[0])
+    password = args[1] if len(args) > 1 else ""
+    user     = getpass.getuser()[:5].upper()
+
     try:
         res = requests.post(f"{url}/verify-room", json={"room": room, "password": password}, timeout=5)
         if res.status_code == 404:
@@ -100,35 +242,57 @@ def run(args):
         server_ip = socket.gethostbyname(url.split("//")[-1].split(":")[0])
     except:
         server_ip = "127.0.0.1"
-    
-    my_ip = get_public_ip()
-    room_details = {
-        "creator": "---", 
-        "description": "No description available.",
-        "created_at": "N/A"
-    }
+
+    my_ip        = get_public_ip()
+    room_details = {"creator": "---", "description": "No description available.", "created_at": "N/A"}
 
     try:
         r_info = requests.get(f"{url}/rooms", timeout=3).json()
         for r in r_info.get('rooms', []):
             if r['name'] == room:
-                room_details['creator'] = r.get('creator', 'SYSTEM')[:10].upper()
+                room_details['creator']     = r.get('creator', 'SYSTEM')[:10].upper()
                 room_details['description'] = r.get('description', 'No description.')
-                room_details['created_at'] = format_date_simple(r.get('created_at', 0))
-    except: pass
+                room_details['created_at']  = format_date_simple(r.get('created_at', 0))
+    except:
+        pass
 
-    # UI Components
-    chat_area = TextArea(read_only=True, scrollbar=True, wrap_lines=True, style="class:chat-content")
-    input_area = TextArea(height=5, multiline=True, prompt=" Message ❯❯❯ ", style="class:input-text")
-    right_sidebar_area = TextArea(read_only=True, focusable=False, wrap_lines=True, style="class:sidebar")
+    # ── Shared State ───────────────────────────────────────────────────────────
+    link_registry   = LinkRegistry()
+    formatted_lines = [[[]]]
+    copy_notify     = [False, 0.0]   # [aktif, timestamp]
 
+    # Focus mode: "input" atau "chat"
+    focus_mode = ["input"]
+
+    # Auto-scroll: True = ikut pesan baru, False = user sedang scroll manual
+    auto_scroll = [True]
+
+    # ── TextArea Chat ──────────────────────────────────────────────────────────
+    chat_area = TextArea(
+        read_only=True,
+        scrollbar=True,
+        wrap_lines=True,
+        focusable=True,
+        style="class:chat-content",
+        lexer=ChatLexer(lambda: formatted_lines[0]),
+    )
+
+    # ── Input Area ─────────────────────────────────────────────────────────────
+    input_area = TextArea(
+        height=5,
+        multiline=True,
+        prompt=" Message ❯❯❯ ",
+        style="class:input-text",
+        focusable=True,
+    )
+
+    # ── Emoji Modal ────────────────────────────────────────────────────────────
     show_emoji_modal = [False]
 
-    # UPDATE: Format Emoji List (Sorted agar rapi)
-    sorted_emojis = sorted(EMOJI_MAP.items())
+    sorted_emojis   = sorted(EMOJI_MAP.items())
     emoji_list_text = ""
     for i in range(0, len(sorted_emojis), 2):
-        row = sorted_emojis[i:i+2]
+        row  = sorted_emojis[i:i+2]
         line = ""
         for k, v in row:
             line += f" <me>{k:8}</me> <white>{v}</white>  "
@@ -140,9 +304,53 @@ def run(args):
     )
     emoji_modal = Frame(emoji_modal_content, style="class:modal-border")
 
-    def get_header_text():
-        return f"  XtermChat-CLI  |  NODE: {socket.gethostname()}  |  {server_ip}  "
+    # ── Sidebar Kanan ──────────────────────────────────────────────────────────
+    right_sidebar_area = TextArea(read_only=True, focusable=False, wrap_lines=True, style="class:sidebar")
+    right_side_html = (
+        f"\n <sidebar.label>CHANNEL</sidebar.label>\n"
+        f" <sidebar.val> #{room[:15].upper()}</sidebar.val>\n\n"
+        f" <sidebar.label>CREATOR</sidebar.label>\n"
+        f"  {room_details['creator']}\n\n"
+        f" <sidebar.label>CREATED</sidebar.label>\n"
+        f"  {room_details['created_at']}\n\n"
+        f" <sidebar.label>ABOUT</sidebar.label>\n"
+        f" <white>{room_details['description']}</white>"
+    )
+    right_sidebar_area.buffer.set_document(
+        Document(text="".join([t for s, t in to_formatted_text(HTML(right_side_html))])),
+        bypass_readonly=True
+    )
 
+    # ── Dynamic Status Bar ─────────────────────────────────────────────────────
+    def get_status_text():
+        # Notifikasi copy: tampil 2 detik
+        if copy_notify[0] and time.time() - copy_notify[1] < 2.0:
+            return " ✅ COPIED TO CLIPBOARD! — press TAB to switch focus "
+
+        if focus_mode[0] == "chat":
+            return (
+                " 📋 CHAT MODE  │  "
+                "↑↓/PgUp/PgDn: SCROLL  │  "
+                "Shift+←→: SELECT WORD  │  "
+                "Ctrl+C: COPY  │  "
+                "Ctrl+L: OPEN LINK  │  "
+                "TAB: → INPUT  │  "
+                "Ctrl+X / :q: EXIT "
+            )
+        else:
+            return (
+                " ✏️  INPUT MODE  │  "
+                "ENTER: SEND  │  "
+                "TAB: → CHAT  │  "
+                "[:clear] [:purge] [:e]  │  "
+                "Ctrl+X: EXIT "
+            )
+
+    def get_header_text():
+        mode_tag = "[ CHAT ]" if focus_mode[0] == "chat" else "[ INPUT ]"
+        return f"  XtermChat-CLI  |  NODE: {socket.gethostname()}  |  {server_ip}  |  {mode_tag}  "
+
+    # ── Fetch Messages ─────────────────────────────────────────────────────────
     def fetch_messages(app):
         nonlocal password
         last_msgs = []
@@ -152,126 +360,308 @@ def run(args):
                 if res.status_code == 200:
                     msgs = res.json()
                     if msgs != last_msgs:
-                        lines = [""]
-                        for m in msgs:
-                            db_time = m.get("timestamp")
-                            try: ts = datetime.strptime(db_time, "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
-                            except: ts = datetime.now(timezone.utc)
-                            t_str = get_human_time(ts)
-                            processed_content = url_regex.sub(r'<u>\g<0></u>', m.get("content", ""))
-                            is_me = (m['sender'].lower() == user.lower() or str(m.get('pin')) == str(CLI_PIN))
-                            if is_me:
-                                line = f" <time>{t_str:4}</time> <me>You</me> <dim>❯</dim> <me_text>{processed_content}</me_text>"
-                            else:
-                                line = f" <time>{t_str:4}</time> <sender>{m['sender'][:5]:5}</sender> <dim>❯</dim> {processed_content}"
-                            lines.append(line)
-                        
-                        # Menambahkan jarak bawah
-                        lines.extend([""] * 5) 
-                        full_text = "".join([t for s, t in to_formatted_text(HTML("\n".join(lines)))])
-                        
-                        # Logic Scroll: Kunci ke bawah hanya jika dokumen berubah (pesan baru)
-                        chat_area.buffer.set_document(Document(text=full_text, cursor_position=len(full_text)), bypass_readonly=True)
+                        plain_text, fmt = build_formatted_lines(msgs, user, link_registry)
+                        formatted_lines[0] = fmt
+
+                        if auto_scroll[0]:
+                            # Auto-scroll ke bawah hanya jika user tidak sedang scroll manual
+                            chat_area.buffer.set_document(
+                                Document(text=plain_text, cursor_position=len(plain_text)),
+                                bypass_readonly=True
+                            )
+                        else:
+                            # Pertahankan posisi cursor/scroll saat ini
+                            cur = chat_area.buffer.cursor_position
+                            chat_area.buffer.set_document(
+                                Document(text=plain_text, cursor_position=min(cur, len(plain_text))),
+                                bypass_readonly=True
+                            )
                         last_msgs = msgs
                         app.invalidate()
-            except: pass
+            except:
+                pass
             time.sleep(2)
 
+    # ── Key Bindings ───────────────────────────────────────────────────────────
     kb = KeyBindings()
-    @kb.add("c-c")
-    def _(event): event.app.exit()
 
-    @kb.add("escape")
+    # ── EXIT: Ctrl+X (global) ──────────────────────────────────────────────────
+    @kb.add("c-x")
     def _(event):
-        show_emoji_modal[0] = False
+        event.app.exit()
+
+    # ── TAB: Toggle fokus chat ↔ input ────────────────────────────────────────
+    @kb.add("tab")
+    def _(event):
+        if focus_mode[0] == "input":
+            focus_mode[0] = "chat"
+            auto_scroll[0] = False   # Masuk chat mode → berhenti auto-scroll
+            event.app.layout.focus(chat_area)
+        else:
+            focus_mode[0] = "input"
+            auto_scroll[0] = True    # Kembali ke input → aktifkan auto-scroll
+            chat_area.buffer.exit_selection()
+            event.app.layout.focus(input_area)
         event.app.invalidate()
 
-    # Navigasi Scroll
+    # ── ESCAPE: tutup emoji modal / keluar chat mode ───────────────────────────
+    @kb.add("escape")
+    def _(event):
+        if show_emoji_modal[0]:
+            show_emoji_modal[0] = False
+        elif focus_mode[0] == "chat":
+            # ESC dari chat mode → kembali ke input
+            focus_mode[0] = "input"
+            auto_scroll[0] = True
+            chat_area.buffer.exit_selection()
+            event.app.layout.focus(input_area)
+        event.app.invalidate()
+
+    # ── SCROLL: PageUp/PageDown ────────────────────────────────────────────────
     @kb.add("pageup")
     def _(event):
-        chat_area.control.scroll_to_position((chat_area.control.vertical_scroll - 5, 0))
+        auto_scroll[0] = False
+        buf = chat_area.buffer
+        for _ in range(12):
+            buf.cursor_up(count=1)
+        event.app.invalidate()
 
     @kb.add("pagedown")
     def _(event):
-        chat_area.control.scroll_to_position((chat_area.control.vertical_scroll + 5, 0))
+        buf = chat_area.buffer
+        for _ in range(12):
+            buf.cursor_down(count=1)
+        # Jika cursor sudah di akhir dokumen, aktifkan auto-scroll lagi
+        if buf.cursor_position >= len(buf.text) - 5:
+            auto_scroll[0] = True
+        event.app.invalidate()
 
+    # ── SCROLL: Arrow Up/Down saat di chat mode ────────────────────────────────
+    @kb.add("up", filter=HasFocus(chat_area))
+    def _(event):
+        auto_scroll[0] = False
+        chat_area.buffer.cursor_up(count=1)
+        event.app.invalidate()
+
+    @kb.add("down", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        buf.cursor_down(count=1)
+        if buf.cursor_position >= len(buf.text) - 5:
+            auto_scroll[0] = True
+        event.app.invalidate()
+
+    # ── SELECT: Shift+Arrow (di chat mode) ────────────────────────────────────
+    # Shift+Right → select karakter ke kanan
+    @kb.add("s-right", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        if buf.selection_state is None:
+            buf.start_selection(selection_type=SelectionType.CHARACTERS)
+        buf.cursor_right(count=1)
+        event.app.invalidate()
+
+    @kb.add("s-left", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        if buf.selection_state is None:
+            buf.start_selection(selection_type=SelectionType.CHARACTERS)
+        buf.cursor_left(count=1)
+        event.app.invalidate()
+
+    @kb.add("s-up", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        if buf.selection_state is None:
+            buf.start_selection(selection_type=SelectionType.CHARACTERS)
+        buf.cursor_up(count=1)
+        event.app.invalidate()
+
+    @kb.add("s-down", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        if buf.selection_state is None:
+            buf.start_selection(selection_type=SelectionType.CHARACTERS)
+        buf.cursor_down(count=1)
+        event.app.invalidate()
+
+    # Ctrl+Shift+Right → select satu kata ke kanan
+    @kb.add("c-s-right", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        if buf.selection_state is None:
+            buf.start_selection(selection_type=SelectionType.CHARACTERS)
+        buf.cursor_right(count=1)
+        # Maju sampai batas kata
+        txt = buf.text
+        pos = buf.cursor_position
+        while pos < len(txt) and txt[pos] not in (' ', '\n', '\t'):
+            buf.cursor_right(count=1)
+            pos = buf.cursor_position
+        while pos < len(txt) and txt[pos] in (' ', '\t'):
+            buf.cursor_right(count=1)
+            pos = buf.cursor_position
+        event.app.invalidate()
+
+    @kb.add("c-s-left", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        if buf.selection_state is None:
+            buf.start_selection(selection_type=SelectionType.CHARACTERS)
+        txt = buf.text
+        pos = buf.cursor_position
+        # Mundur skip spasi
+        while pos > 0 and txt[pos - 1] in (' ', '\t'):
+            buf.cursor_left(count=1)
+            pos = buf.cursor_position
+        # Mundur sampai batas kata
+        while pos > 0 and txt[pos - 1] not in (' ', '\n', '\t'):
+            buf.cursor_left(count=1)
+            pos = buf.cursor_position
+        event.app.invalidate()
+
+    # ── COPY: Ctrl+C di chat mode ──────────────────────────────────────────────
+    @kb.add("c-c", filter=HasFocus(chat_area))
+    def _(event):
+        buf = chat_area.buffer
+        if buf.selection_state:
+            try:
+                from_, to_ = buf.document.selection_range()
+                text = buf.document.text[from_:to_]
+                if text.strip() and copy_to_clipboard(text):
+                    copy_notify[0] = True
+                    copy_notify[1] = time.time()
+                    buf.exit_selection()
+                    event.app.invalidate()
+            except Exception:
+                pass
+        # Jika tidak ada seleksi, Ctrl+C di chat mode tidak exit (gunakan Ctrl+X)
+
+    # Ctrl+C di input mode → exit (kebiasaan terminal)
+    @kb.add("c-c", filter=HasFocus(input_area))
+    def _(event):
+        event.app.exit()
+
+    # ── OPEN LINK: Ctrl+L di chat mode ────────────────────────────────────────
+    @kb.add("c-l", filter=HasFocus(chat_area))
+    def _(event):
+        pos = chat_area.buffer.cursor_position
+        found_url = link_registry.find(pos)
+        if found_url:
+            open_url(found_url)
+
+    # ── HOME / END di chat mode ────────────────────────────────────────────────
+    @kb.add("home", filter=HasFocus(chat_area))
+    def _(event):
+        # Scroll ke paling atas
+        auto_scroll[0] = False
+        chat_area.buffer.cursor_position = 0
+        event.app.invalidate()
+
+    @kb.add("end", filter=HasFocus(chat_area))
+    def _(event):
+        # Scroll ke paling bawah & aktifkan auto-scroll
+        buf = chat_area.buffer
+        buf.cursor_position = len(buf.text)
+        auto_scroll[0] = True
+        event.app.invalidate()
+
+    # ── ENTER di input mode ────────────────────────────────────────────────────
     @kb.add("enter", filter=HasFocus(input_area))
     def _(event):
         msg = input_area.text.strip()
-        if not msg: return
+        if not msg:
+            return
 
-        # --- COMMAND: PURGE (SERVER SIDE) ---
+        # ── :q → exit ──────────────────────────────────────────────────────
+        if msg in (":q", ":quit", ":exit"):
+            event.app.exit()
+            return
+
+        # ── :purge ──────────────────────────────────────────────────────────
         if msg == ":purge":
             try:
-                # Pastikan room name bersih dari spasi
-                target_room = room.strip() 
-                payload = {"room": target_room, "user": user, "pin": CLI_PIN}
-                
-                # Gunakan timeout yang cukup
+                payload = {"room": room.strip(), "user": user, "pin": CLI_PIN}
                 res = requests.post(f"{url}/purge-chat", json=payload, timeout=7)
-                
                 if res.status_code == 200:
-                    # Clear screen
+                    formatted_lines[0] = [[("", "")]]
                     chat_area.buffer.set_document(Document(text=""), bypass_readonly=True)
-                    
-                    # Tampilkan pesan sukses dengan cursor di akhir
-                    success_msg = "\n <me>SYSTEM</me> <dim>❯</dim> <me_text>SUCCESS: Room history has been purged from server.</me_text>\n"
-                    chat_area.buffer.set_document(Document(text=success_msg, cursor_position=len(success_msg)), bypass_readonly=True)
-                
                 elif res.status_code == 403:
-                    error_msg = "\n <time>SYSTEM</time> <dim>❯</dim> <white>ERROR: Access Denied. Only the original Creator can purge.</white>\n"
-                    # Tambahkan ke text yang sudah ada agar chat lama tidak hilang saat gagal
-                    new_text = chat_area.text + error_msg
-                    chat_area.buffer.set_document(Document(text=new_text, cursor_position=len(new_text)), bypass_readonly=True)
-                
+                    err = "\n SYSTEM ❯ ERROR: Access Denied. Only the original Creator can purge.\n"
+                    new = chat_area.text + err
+                    chat_area.buffer.set_document(
+                        Document(text=new, cursor_position=len(new)), bypass_readonly=True
+                    )
                 else:
-                    error_msg = f"\n <time>SYSTEM</time> <dim>❯</dim> <white>ERROR: Server returned status {res.status_code}</white>\n"
-                    new_text = chat_area.text + error_msg
-                    chat_area.buffer.set_document(Document(text=new_text, cursor_position=len(new_text)), bypass_readonly=True)
-
+                    err = f"\n SYSTEM ❯ ERROR: Server returned status {res.status_code}\n"
+                    new = chat_area.text + err
+                    chat_area.buffer.set_document(
+                        Document(text=new, cursor_position=len(new)), bypass_readonly=True
+                    )
             except Exception as e:
-                conn_error = f"\n <time>SYSTEM</time> <dim>❯</dim> <white>ERROR: Connection failed ({str(e)})</white>\n"
-                new_text = chat_area.text + conn_error
-                chat_area.buffer.set_document(Document(text=new_text, cursor_position=len(new_text)), bypass_readonly=True)
-            
+                err = f"\n SYSTEM ❯ ERROR: Connection failed ({str(e)})\n"
+                new = chat_area.text + err
+                chat_area.buffer.set_document(
+                    Document(text=new, cursor_position=len(new)), bypass_readonly=True
+                )
             input_area.text = ""
             return
-        
+
+        # ── :clear ──────────────────────────────────────────────────────────
         if msg == ":clear":
+            formatted_lines[0] = [[("", "")]]
             chat_area.buffer.set_document(Document(text=""), bypass_readonly=True)
             input_area.text = ""
             return
-            
+
+        # ── :e (emoji modal) ─────────────────────────────────────────────────
         if msg == ":e":
             show_emoji_modal[0] = not show_emoji_modal[0]
             input_area.text = ""
             event.app.invalidate()
             return
-        for code, icon in EMOJI_MAP.items(): msg = msg.replace(code, icon)
+
+        # ── Send pesan ───────────────────────────────────────────────────────
+        for code, icon in EMOJI_MAP.items():
+            msg = msg.replace(code, icon)
         try:
-            payload = {"room": room, "password": password, "user": user, "content": msg, "pin": CLI_PIN}
+            payload = {
+                "room": room, "password": password,
+                "user": user, "content": msg, "pin": CLI_PIN
+            }
             requests.post(f"{url}/send", json=payload, timeout=5)
             input_area.text = ""
-        except: pass
+            auto_scroll[0] = True   # Setelah kirim, aktifkan auto-scroll
+        except:
+            pass
 
+    # ── Style ──────────────────────────────────────────────────────────────────
     style = Style.from_dict({
-        '': '#ffffff bg:#000000',
-        'chat-content': 'bg:#050505',
-        'header': 'bg:#0084ff #ffffff bold',
-        'sidebar': 'bg:#0a0a0a #666666',
-        'sidebar.label': '#444444 bold',
-        'sidebar.val': '#0084ff bold',
-        'time': '#333333',
-        'sender': '#ffffff bold',
-        'me': '#0084ff bold',
-        'me_text': '#00aaff',
-        'dim': '#222222',
-        'input-text': 'bg:#000000 #ffffff',
-        'status': 'bg:#000000 #333333 italic',
-        'modal': 'bg:#111111 #ffffff',
-        'modal-border': '#0084ff bold',
+        '':                 '#ffffff bg:#000000',
+        # Chat area — border berubah warna tergantung fokus
+        'chat-content':     'bg:#050505',
+        'chat-focused':     'bg:#050505',
+        'header':           'bg:#0084ff #ffffff bold',
+        'sidebar':          'bg:#0a0a0a #666666',
+        'sidebar.label':    '#444444 bold',
+        'sidebar.val':      '#0084ff bold',
+        'time':             '#333333',
+        'sender':           '#ffffff bold',
+        'me':               '#0084ff bold',
+        'me_text':          '#00aaff',
+        'dim':              '#222222',
+        'input-text':       'bg:#000000 #ffffff',
+        'status':           'bg:#000000 #555555',
+        'status-chat':      'bg:#001a33 #00cfff bold',
+        'modal':            'bg:#111111 #ffffff',
+        'modal-border':     '#0084ff bold',
+        'link':             '#00cfff bold underline',
+        # Focus indicator di border
+        'frame.border':     '#333333',
+        'focused frame.border': '#0084ff bold',
     })
 
+    # ── Sidebar Kiri ───────────────────────────────────────────────────────────
     left_side = HTML(
         f"\n <sidebar.label>ID</sidebar.label>\n"
         f" <sidebar.val> {user}</sidebar.val>\n\n"
@@ -283,35 +673,56 @@ def run(args):
         f" <me> LOCKED</me>"
     )
 
-    # Sidebar Kanan dengan Created At
-    right_side_html = (
-        f"\n <sidebar.label>CHANNEL</sidebar.label>\n"
-        f" <sidebar.val> #{room[:15].upper()}</sidebar.val>\n\n"
-        f" <sidebar.label>CREATOR</sidebar.label>\n"
-        f"  {room_details['creator']}\n\n"
-        f" <sidebar.label>CREATED</sidebar.label>\n"
-        f"  {room_details['created_at']}\n\n"
-        f" <sidebar.label>ABOUT</sidebar.label>\n"
-        f" <white>{room_details['description']}</white>"
+    # ── Chat Frame: border berubah saat fokus ──────────────────────────────────
+    # Indikator visual: garis pemisah chat berubah warna saat CHAT MODE aktif
+    def get_chat_border_char():
+        return "│"
+
+    def get_chat_top_indicator():
+        if focus_mode[0] == "chat":
+            return " ▌ CHAT MODE — TAB: back to input │ Ctrl+X: exit "
+        return ""
+
+    # Wrapper chat area dengan indikator mode di atas
+    chat_mode_indicator = Window(
+        height=1,
+        content=FormattedTextControl(
+            text=lambda: (
+                FormattedText([("class:status-chat", get_chat_top_indicator())])
+                if focus_mode[0] == "chat"
+                else FormattedText([("class:dim", "")])
+            )
+        ),
     )
-    right_sidebar_area.buffer.set_document(Document(text="".join([t for s, t in to_formatted_text(HTML(right_side_html))])), bypass_readonly=True)
+
+    # ── Layout ─────────────────────────────────────────────────────────────────
+    chat_panel = HSplit([
+        chat_mode_indicator,
+        chat_area,
+    ])
 
     body = VSplit([
         Window(width=25, content=FormattedTextControl(left_side), style="class:sidebar"),
         Window(width=1, char="│", style="class:dim"),
-        chat_area,
+        chat_panel,
         Window(width=1, char="│", style="class:dim"),
         Window(width=35, content=right_sidebar_area.control, style="class:sidebar"),
     ])
 
     root_container = FloatContainer(
         content=HSplit([
-            Window(height=1, style="class:header", content=FormattedTextControl(text=get_header_text)),
+            Window(
+                height=1,
+                style="class:header",
+                content=FormattedTextControl(text=get_header_text),
+            ),
             body,
-            Window(height=1, style="class:status", content=FormattedTextControl(
-                text=" [:clear] CLEAR | [:purge] PURGE | [:e] EMOJI | [CTRL C] EXIT | [ENTER] SEND "
-            )),            
-            input_area
+            Window(
+                height=1,
+                style=lambda: "class:status-chat" if focus_mode[0] == "chat" else "class:status",
+                content=FormattedTextControl(text=get_status_text),
+            ),
+            input_area,
         ]),
         floats=[
             Float(content=ConditionalContainer(
@@ -321,7 +732,15 @@ def run(args):
         ]
     )
 
-    app = Application(layout=Layout(root_container), key_bindings=kb, full_screen=True, style=style, mouse_support=True)
+    app = Application(
+        layout=Layout(root_container),
+        key_bindings=kb,
+        full_screen=True,
+        style=style,
+        mouse_support=True,
+    )
+
+    # Start fokus di input
     app.layout.focus(input_area)
     threading.Thread(target=fetch_messages, args=(app,), daemon=True).start()
     app.run()
