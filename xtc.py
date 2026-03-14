@@ -3,15 +3,15 @@ import sys
 import os
 import shutil
 import subprocess
-from commands import connect, disconnect, status, create, delete, chat, listRooms
+from commands import connect, disconnect, status, create, delete, chat, listRooms, bot, bot_stop
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
-def W(text):  return f"\033[1m{text}\033[0m"          # Bold white
-def D(text):  return f"\033[2m{text}\033[0m"          # Dim
-def B(text):  return f"\033[1;34m{text}\033[0m"       # Bold blue
-def C(text):  return f"\033[34m{text}\033[0m"         # Blue (commands)
-def R(text):  return f"\033[31m{text}\033[0m"         # Red (errors only)
+def W(text):  return f"\033[1m{text}\033[0m"
+def D(text):  return f"\033[2m{text}\033[0m"
+def B(text):  return f"\033[1;34m{text}\033[0m"
+def C(text):  return f"\033[34m{text}\033[0m"
+def R(text):  return f"\033[31m{text}\033[0m"
 
 def terminal_width():
     return min(shutil.get_terminal_size().columns, 64)
@@ -35,38 +35,52 @@ def show_help():
     print(f"\n  {B('▸')} {W('USAGE')}")
     print(f"    {C('xtc')} <command> [args]\n")
 
-    # Commands
-    commands = [
-        ("connect",      "Connect client to a server"),
-        ("disconnect",   "Remove saved server config"),
-        ("status",       "Check server connection"),
-        ("list:rooms",   "List all available rooms"),
-        ("create:room",  "Create a new room"),
-        ("delete:room",  "Delete a room permanently"),
-        ("start:chat",   "Open interactive chat"),
-        ("start:web",    "Open web interface"),
+    # Commands — dikelompokkan per kategori
+    groups = [
+        ("CONNECTION", [
+            ("connect",     "Connect client to a server"),
+            ("disconnect",  "Remove saved server config"),
+            ("status",      "Check server connection"),
+        ]),
+        ("ROOMS", [
+            ("list:rooms",  "List all available rooms"),
+            ("create:room", "Create a new room"),
+            ("delete:room", "Delete a room permanently"),
+        ]),
+        ("CHAT", [
+            ("start:chat",  "Open interactive chat"),
+            ("start:web",   "Open web interface"),
+        ]),
+        ("BOT", [
+            ("start:bot",   "Start a monitoring bot on this server"),
+            ("stop:bot",    "Stop a running bot  (stop:bot <id>)"),
+        ]),
     ]
 
     print(f"  {B('▸')} {W('COMMANDS')}")
-    for cmd, desc in commands:
-        print(f"    {B(f'{cmd:<16}')} {D(desc)}")
+    for group_name, cmds in groups:
+        print(f"\n    {D(group_name)}")
+        for cmd, desc in cmds:
+            print(f"    {B(f'{cmd:<16}')} {D(desc)}")
 
     # Examples
     print(f"\n  {B('▸')} {W('EXAMPLES')}")
     examples = [
-        "xtc connect @123.123.123.123:8080",
-        "xtc status",
-        "xtc list:rooms",
-        "xtc create:room",
-        "xtc start:chat @general",
-        "xtc delete:room @general",
-        "xtc start:web",
+        ("xtc connect",    "@123.123.123.123:8080"),
+        ("xtc status",     ""),
+        ("xtc list:rooms", ""),
+        ("xtc create:room",""),
+        ("xtc start:chat", "@general"),
+        ("xtc delete:room","@general"),
+        ("xtc start:web",  ""),
+        ("xtc start:bot",  ""),
+        ("xtc stop:bot",   "1"),
     ]
-    for ex in examples:
-        parts = ex.split(" ", 2)
+    for cmd, arg in examples:
+        parts = cmd.split(" ", 1)
         line  = f"    {D(parts[0])} {C(parts[1])}"
-        if len(parts) > 2:
-            line += f" {W(parts[2])}"
+        if arg:
+            line += f" {W(arg)}"
         print(line)
 
     # Footer
@@ -102,6 +116,12 @@ def main():
 
     elif cmd == "start:chat":
         chat.run(sys.argv[2:])
+
+    elif cmd == "start:bot":
+        bot.run(sys.argv[2:])
+
+    elif cmd == "stop:bot":
+        bot_stop.run(sys.argv[2:])
 
     elif cmd in ("help", "--help", "-h"):
         show_help()
