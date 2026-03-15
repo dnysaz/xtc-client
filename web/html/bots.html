@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XtermChat · Bots</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/_layout.js"></script>
+<style>
+  body{font-family:'DM Sans',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .card{background:#fff;border:1px solid #f1f5f9;border-radius:14px}
+  .lbl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:5px;font-family:"JetBrains Mono",monospace}
+  .inp{width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:10px 13px;font-size:14px;font-weight:500;color:#0f172a;outline:none;transition:all .2s}
+  .inp:focus{border-color:#2563eb;background:#fff;box-shadow:0 0 0 3px #2563eb18}
+  .inp::placeholder{color:#94a3b8;font-weight:400}
+  .task-check{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s}
+  .task-check:hover{background:#eff6ff}
+  .task-check input{margin-top:2px;accent-color:#2563eb;cursor:pointer}
+  .btn{padding:8px 16px;border-radius:9px;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+  .btn-primary{background:#1e40af;color:#fff}.btn-primary:hover{background:#1d4ed8}
+  .btn-danger{background:#fff;color:#ef4444;border:1.5px solid #fee2e2}.btn-danger:hover{background:#fef2f2;border-color:#ef4444}
+  .btn-warn{background:#fff;color:#d97706;border:1.5px solid #fef3c7}.btn-warn:hover{background:#fffbeb;border-color:#d97706}
+  .btn-ghost{background:#f8fafc;color:#64748b;border:1.5px solid #e2e8f0}.btn-ghost:hover{background:#f1f5f9}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+  .modal{background:#fff;border-radius:18px;padding:26px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,.15)}
+  #sidebar{transform:translateX(-100%)}
+  @media(min-width:1024px){#sidebar{transform:translateX(0)}}
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- Create Bot Modal -->
+<div id="createModal" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:480px;max-height:90vh;overflow-y:auto">
+    <h3 class="text-base font-bold text-slate-900 mb-1">Create New Bot</h3>
+    <p class="text-xs text-slate-400 mb-5">Bot will run on the server and send alerts to the selected room.</p>
+    <div class="space-y-4">
+      <div>
+        <label class="lbl">Bot Name</label>
+        <input id="cbName" class="inp" placeholder="MONITOR" maxlength="10" style="text-transform:uppercase">
+      </div>
+      <div>
+        <label class="lbl">Target Room</label>
+        <select id="cbRoom" class="inp" style="cursor:pointer">
+          <option value="">Loading rooms...</option>
+        </select>
+      </div>
+      <div>
+        <label class="lbl">Tasks <span class="text-slate-300 font-normal normal-case">(select multiple)</span></label>
+        <div id="taskList" class="space-y-2 max-h-52 overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50">
+          <!-- populated by JS -->
+        </div>
+      </div>
+      <div id="taskConfig" class="space-y-3">
+        <!-- dynamic config fields -->
+      </div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="closeCreate()" class="btn btn-ghost flex-1">Cancel</button>
+      <button onclick="createBot()" class="btn btn-primary flex-1">Create &amp; Start Bot</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirmModal" class="modal-bg" style="display:none">
+  <div class="modal text-center">
+    <div id="confirmIcon" class="text-3xl mb-3">⚠️</div>
+    <h3 id="confirmTitle" class="text-base font-bold text-slate-900 mb-2"></h3>
+    <p id="confirmMsg" class="text-sm text-slate-500 mb-5"></p>
+    <div class="flex gap-3">
+      <button onclick="closeConfirm()" class="btn btn-ghost flex-1">Cancel</button>
+      <button id="confirmOk" class="btn btn-danger flex-1">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed top-0 left-0 h-full w-60 bg-white border-r border-slate-100 z-40 flex flex-col transition-transform duration-300">
+  <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
+    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0"><span class="text-white font-black text-xs mono">xtc</span></div>
+    <div class="flex-1"><div class="text-sm font-bold text-slate-900">XtermChat</div><div class="text-[10px] text-slate-400 mono">Admin Panel</div></div>
+    <button onclick="closeSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 p-1 text-lg">✕</button>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <div class="px-1 mb-3 text-[9px] font-bold uppercase tracking-widest text-slate-300 mono">Navigation</div>
+    <a href="/dashboard" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">◈</span><span>Dashboard</span></a>
+    <a href="/rooms" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">⊞</span><span>Rooms</span></a>
+    <a href="/chat" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">◎</span><span>Chat</span></a>
+    <a href="/bots" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-50 text-blue-600"><span class="w-5 text-center">⊕</span><span>Bots</span><span class="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"></span></a>
+  </nav>
+  <div class="px-4 py-4 border-t border-slate-100">
+    <div class="flex items-center gap-3 mb-3">
+      <div id="sb-avatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">--</div>
+      <div class="min-w-0"><div id="sb-user" class="text-sm font-bold text-slate-800 truncate">—</div><div id="sb-ip" class="text-[10px] text-slate-400 truncate mono">—</div></div>
+    </div>
+    <button onclick="logout()" class="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">← Disconnect</button>
+  </div>
+</aside>
+<div id="overlay" onclick="closeSidebar()" style="display:none" class="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-sm"></div>
+
+<!-- Main -->
+<div class="lg:pl-60 min-h-screen">
+  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 px-5 lg:px-8 h-14 flex items-center gap-4">
+    <button onclick="openSidebar()" class="lg:hidden text-slate-500 hover:text-slate-800 p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <h1 class="text-base font-bold text-slate-800">Bots</h1>
+    <div class="ml-auto">
+      <button onclick="loadBots()" class="btn btn-ghost text-xs py-2 px-4">↻ Refresh</button>
+        <button onclick="openCreate()" class="btn btn-primary text-xs py-2 px-4">+ New Bot</button>
+    </div>
+  </header>
+
+  <main class="p-5 lg:p-8 max-w-5xl mx-auto">
+    <div class="mb-5">
+      <h2 class="text-lg font-bold text-slate-900">Registered Bots</h2>
+      <p class="text-sm text-slate-400 mt-0.5">Monitor and manage bots on your server</p>
+    </div>
+    <div id="botList" class="card mb-4">
+      <div class="flex items-center justify-center h-32 text-slate-300 text-sm mono">Loading...</div>
+    </div>
+  </main>
+</div>
+
+<script>
+let _cb = null;
+
+function showConfirm(icon, title, msg, btnClass, cb) {
+  document.getElementById('confirmIcon').textContent  = icon;
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent   = msg;
+  const btn = document.getElementById('confirmOk');
+  btn.className = `btn ${btnClass} flex-1`;
+  btn.onclick = () => { closeConfirm(); cb(); };
+  document.getElementById('confirmModal').style.display = 'flex';
+}
+function closeConfirm() {
+  document.getElementById('confirmModal').style.display = 'none';
+}
+
+(async () => {
+  const s = requireSession();
+  if (!s) return;
+  await loadBots();
+})();
+
+async function loadBots() {
+  const s  = requireSession();
+  const el = document.getElementById('botList');
+  if (!el) return;
+
+  const { data } = await GET('/bot/list/all');
+  const bots = data?.bots || [];
+
+  if (!bots.length) {
+    el.innerHTML = `<div class="flex flex-col items-center justify-center py-14 text-center">
+      <div class="text-4xl mb-3">🤖</div>
+      <div class="text-slate-500 font-semibold mb-1">No bots registered</div>
+      <div class="text-sm text-slate-400">Run <span class="mono font-bold">xtc start:bot</span> to create one</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="divide-y divide-slate-50">
+      ${bots.map(b => {
+        const tasks  = (typeof b.tasks==='string' ? JSON.parse(b.tasks||'[]') : b.tasks||[]);
+        const tNames = tasks.map(t=>t.id).join(', ') || '—';
+        const active = b.status === 'active';
+        return `
+        <div class="flex items-start gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors">
+          <div class="w-9 h-9 rounded-xl ${active?'bg-green-50':'bg-slate-100'} flex items-center justify-center text-lg shrink-0">🤖</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-bold text-slate-800 mono">${b.name}</span>
+              <span class="badge ${active?'bg-green-50 text-green-600':'bg-slate-100 text-slate-400'}">
+                ${active ? '● Active' : '○ Stopped'}
+              </span>
+            </div>
+            <div class="text-xs text-slate-400 mt-1">
+              <span class="mono">@${b.room}</span>
+              <span class="mx-1.5 text-slate-200">·</span>
+              <span>${tNames}</span>
+              <span class="mx-1.5 text-slate-200">·</span>
+              <span class="mono">#${b.id}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+            ${active
+              ? `<button onclick="stopBot(${b.id},'${b.name}')" class="btn btn-warn text-xs py-1.5 px-3">Stop</button>`
+              : `<button onclick="startBot(${b.id},'${b.name}')" class="btn btn-primary text-xs py-1.5 px-3">Start</button>`}
+            <button onclick="deleteBot(${b.id},'${b.name}',${active})" class="btn btn-danger text-xs py-1.5 px-3">Delete</button>
+          </div>
+        </div>`}).join('')}
+    </div>
+    <div class="px-5 py-3 bg-slate-50/60 rounded-b-2xl border-t border-slate-100">
+      <span class="text-xs text-slate-400 mono">
+        ${bots.filter(b=>b.status==='active').length} active · ${bots.length} total
+      </span>
+    </div>`;
+}
+
+async function stopBot(id, name) {
+  showConfirm('🛑', `Stop ${name}?`, `Bot #${id} will be stopped.`, 'btn-warn', async () => {
+    const s = requireSession();
+    const { ok, data } = await POST('/bot/admin/kill', { bot_id: id, pin: s.pin });
+    if (ok) { toast(`${name} stopped`, 'success'); loadBots(); }
+    else    toast(data?.message || 'Failed', 'error');
+  });
+}
+
+async function startBot(id, name) {
+  const s = requireSession();
+  const { ok, data } = await POST('/bot/admin/start', { bot_id: id, pin: s.pin });
+  if (ok) { toast(`${name} started (PID: ${data?.pid})`, 'success'); loadBots(); }
+  else    toast(data?.message || 'Failed to start', 'error');
+}
+
+async function deleteBot(id, name, isActive) {
+  if (isActive) return toast('Stop the bot first', 'warn');
+  showConfirm('🗑️', `Delete ${name}?`, `Bot #${id} will be permanently removed.`, 'btn-danger', async () => {
+    const s = requireSession();
+    const { ok, data } = await POST('/bot/admin/delete', { bot_id: id, pin: s.pin });
+    if (ok) { toast(`${name} deleted`, 'success'); loadBots(); }
+    else    toast(data?.message || 'Failed', 'error');
+  });
+}
+
+
+// ── AVAILABLE TASKS ──────────────────────────────────────────────────────────
+const TASKS = [
+  { id:'resource',   label:'Resource Monitor',   desc:'CPU, RAM, Disk — alert if above threshold', fields:['interval','cpu_threshold','ram_threshold','disk_threshold'] },
+  { id:'process',    label:'Process Monitor',    desc:'Watch if a service dies, auto-restart',      fields:['interval','process_name','auto_restart'] },
+  { id:'uptime',     label:'Uptime Watchdog',    desc:'Ping a URL every N minutes',                 fields:['interval','target_url'] },
+  { id:'port',       label:'Port Checker',       desc:'Verify ports are open',                      fields:['interval','ports'] },
+  { id:'traffic',    label:'Traffic Monitor',    desc:'Network bandwidth in/out',                   fields:['interval','interface'] },
+  { id:'ssl',        label:'SSL Cert Checker',   desc:'Alert before SSL cert expires',              fields:['interval','ssl_domain','ssl_warn_days'] },
+  { id:'log',        label:'Log Watcher',        desc:'Tail a log file for keywords',               fields:['log_file','log_keyword'] },
+  { id:'disk_clean', label:'Disk Cleanup Alert', desc:'Warn when disk fills up',                    fields:['interval','disk_threshold'] },
+  { id:'schedule',   label:'Scheduled Report',   desc:'Daily server summary at set time',           fields:['report_time'] },
+  { id:'custom',     label:'Custom Command',     desc:'Run any shell command',                       fields:['interval','shell_command'] },
+];
+
+// ── OPEN CREATE MODAL ─────────────────────────────────────────────────────────
+async function openCreate() {
+  // Load rooms into select
+  const { data } = await GET('/rooms');
+  const rooms = data?.rooms || [];
+  const sel   = document.getElementById('cbRoom');
+  sel.innerHTML = rooms.length
+    ? rooms.map(r => `<option value="${r.name}">@${r.name}${r.has_password ? ' 🔒' : ''}</option>`).join('')
+    : '<option value="">No rooms available</option>';
+
+  // Build task checkboxes
+  document.getElementById('taskList').innerHTML = TASKS.map(t => `
+    <label class="task-check">
+      <input type="checkbox" value="${t.id}" onchange="updateTaskConfig()">
+      <div>
+        <div class="text-sm font-semibold text-slate-800">${t.label}</div>
+        <div class="text-xs text-slate-400">${t.desc}</div>
+      </div>
+    </label>`).join('');
+
+  document.getElementById('taskConfig').innerHTML = '';
+  document.getElementById('cbName').value = '';
+  document.getElementById('createModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('cbName').focus(), 100);
+}
+
+function closeCreate() {
+  document.getElementById('createModal').style.display = 'none';
+}
+
+// ── DYNAMIC CONFIG FIELDS based on selected tasks ────────────────────────────
+function updateTaskConfig() {
+  const checked = [...document.querySelectorAll('#taskList input:checked')].map(el => el.value);
+  const neededFields = new Set();
+  checked.forEach(id => {
+    const t = TASKS.find(t => t.id === id);
+    if (t) t.fields.forEach(f => neededFields.add(f));
+  });
+
+  const fieldDefs = {
+    interval:       { label:'Check interval (minutes)', type:'number', default:'5',    placeholder:'5' },
+    cpu_threshold:  { label:'CPU alert threshold (%)',   type:'number', default:'80',   placeholder:'80' },
+    ram_threshold:  { label:'RAM alert threshold (%)',   type:'number', default:'85',   placeholder:'85' },
+    disk_threshold: { label:'Disk alert threshold (%)',  type:'number', default:'90',   placeholder:'90' },
+    process_name:   { label:'Process name to watch',     type:'text',   default:'',     placeholder:'nginx, gunicorn...' },
+    auto_restart:   { label:'Auto-restart if dies?',     type:'select', options:['no','yes'] },
+    target_url:     { label:'URL to monitor',            type:'url',    default:'',     placeholder:'https://myapp.com' },
+    ports:          { label:'Ports to check (comma-sep)',type:'text',   default:'8080', placeholder:'80,443,8080' },
+    interface:      { label:'Network interface',         type:'text',   default:'eth0', placeholder:'eth0, ens3' },
+    ssl_domain:     { label:'Domain to check SSL',       type:'text',   default:'',     placeholder:'myapp.com' },
+    ssl_warn_days:  { label:'Warn N days before expiry', type:'number', default:'30',   placeholder:'30' },
+    log_file:       { label:'Log file path',             type:'text',   default:'',     placeholder:'/var/log/nginx/error.log' },
+    log_keyword:    { label:'Keyword to watch',          type:'text',   default:'ERROR',placeholder:'ERROR' },
+    report_time:    { label:'Daily report time (HH:MM)', type:'text',   default:'08:00',placeholder:'08:00' },
+    shell_command:  { label:'Shell command to run',      type:'text',   default:'',     placeholder:'df -h /' },
+  };
+
+  if (neededFields.size === 0) {
+    document.getElementById('taskConfig').innerHTML = '';
+    return;
+  }
+
+  document.getElementById('taskConfig').innerHTML = `
+    <div class="border-t border-slate-100 pt-3">
+      <div class="text-xs font-bold uppercase tracking-widest text-slate-400 mono mb-3">Task Configuration</div>
+      <div class="space-y-3">
+        ${[...neededFields].map(f => {
+          const d = fieldDefs[f] || { label:f, type:'text', default:'', placeholder:'' };
+          if (d.type === 'select') {
+            return `<div>
+              <label class="lbl">${d.label}</label>
+              <select id="cf_${f}" class="inp" style="cursor:pointer">
+                ${d.options.map(o => `<option value="${o}">${o}</option>`).join('')}
+              </select>
+            </div>`;
+          }
+          return `<div>
+            <label class="lbl">${d.label}</label>
+            <input id="cf_${f}" type="${d.type==='url'?'text':d.type}" class="inp"
+              value="${d.default}" placeholder="${d.placeholder}">
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+// ── CREATE BOT ────────────────────────────────────────────────────────────────
+async function createBot() {
+  const s    = requireSession();
+  const name = document.getElementById('cbName').value.trim().toUpperCase().slice(0, 10);
+  const room = document.getElementById('cbRoom').value;
+
+  if (!name) return toast('Bot name is required', 'warn');
+  if (!room) return toast('Select a target room', 'warn');
+
+  const checked = [...document.querySelectorAll('#taskList input:checked')].map(el => el.value);
+  if (!checked.length) return toast('Select at least one task', 'warn');
+
+  // Build tasks config
+  const tasks = checked.map(taskId => {
+    const t   = TASKS.find(t => t.id === taskId);
+    const cfg = {};
+    (t?.fields || []).forEach(f => {
+      const el = document.getElementById('cf_' + f);
+      if (!el) return;
+      if (f === 'auto_restart') { cfg[f] = el.value === 'yes'; return; }
+      if (f === 'ports')        { cfg[f] = el.value.split(',').map(p => parseInt(p.trim())).filter(Boolean); return; }
+      const v = el.value.trim();
+      cfg[f] = (el.type === 'number') ? (parseInt(v) || 0) : v;
+    });
+    return { id: taskId, label: t?.label || taskId, config: cfg };
+  });
+
+  // Register bot
+  const regRes = await POST('/bot/register', {
+    name, pin: s.pin, room, host: 'web-admin', tasks,
+  });
+  if (!regRes.ok) return toast(regRes.data?.message || 'Failed to register bot', 'error');
+
+  const botId = regRes.data?.bot_id;
+  toast(`Bot ${name} registered (#${botId})`, 'success');
+  closeCreate();
+
+  // Start bot on server
+  const startRes = await POST('/bot/start', { bot_id: botId, pin: s.pin });
+  if (startRes.ok) {
+    toast(`Bot ${name} started on server`, 'success');
+  } else {
+    toast(startRes.data?.message || 'Bot registered but failed to start', 'warn');
+  }
+
+  loadBots();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeConfirm(); closeCreate(); }
+});
+
+</script>
+</body>
+</html>

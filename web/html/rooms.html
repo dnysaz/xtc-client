@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XtermChat · Rooms</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/_layout.js"></script>
+<style>
+  body{font-family:'DM Sans',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .card{background:#fff;border:1px solid #f1f5f9;border-radius:14px}
+  .inp{width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:10px 13px;font-size:14px;font-weight:500;color:#0f172a;outline:none;transition:all .2s}
+  .inp:focus{border-color:#2563eb;background:#fff;box-shadow:0 0 0 3px #2563eb18}
+  .inp::placeholder{color:#94a3b8;font-weight:400}
+  .lbl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+  .btn{padding:8px 16px;border-radius:9px;font-size:13px;font-weight:700;border:none;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif}
+  .btn-primary{background:#1e40af;color:#fff}.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px)}
+  .btn-danger{background:#fff;color:#ef4444;border:1.5px solid #fee2e2}.btn-danger:hover{background:#fef2f2;border-color:#ef4444}
+  .btn-ghost{background:#f8fafc;color:#64748b;border:1.5px solid #e2e8f0}.btn-ghost:hover{background:#f1f5f9}
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+  .modal{background:#fff;border-radius:18px;padding:26px;width:100%;max-width:400px;box-shadow:0 24px 64px rgba(0,0,0,.15)}
+  #sidebar{transform:translateX(-100%)}
+  @media(min-width:1024px){#sidebar{transform:translateX(0)}}
+</style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+
+<!-- Create Modal -->
+<div id="createModal" class="modal-bg" style="display:none">
+  <div class="modal">
+    <h3 class="text-base font-bold text-slate-900 mb-5">Create New Room</h3>
+    <div class="space-y-4">
+      <div><label class="lbl">Room Name *</label><input id="newName" class="inp" placeholder="general" autocomplete="off"></div>
+      <div><label class="lbl">Password <span class="text-slate-300 normal-case font-normal">(empty = public)</span></label><input id="newPass" type="password" class="inp" placeholder="optional"></div>
+      <div><label class="lbl">Description</label><input id="newDesc" class="inp" placeholder="What's this room for?"></div>
+    </div>
+    <div class="flex gap-3 mt-5">
+      <button onclick="closeCreate()" class="btn btn-ghost flex-1">Cancel</button>
+      <button onclick="createRoom()" class="btn btn-primary flex-1">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="modal-bg" style="display:none">
+  <div class="modal text-center">
+    <div class="text-3xl mb-3">🗑️</div>
+    <h3 class="text-base font-bold text-slate-900 mb-2">Delete Room</h3>
+    <p class="text-sm text-slate-500 mb-1">You are about to delete</p>
+    <p class="text-base font-bold text-slate-800 mb-2 mono" id="deleteRoomName"></p>
+    <p class="text-xs text-slate-400 mb-5">All messages will be permanently deleted. Cannot be undone.</p>
+    <div class="flex gap-3">
+      <button onclick="closeDelete()" class="btn btn-ghost flex-1">Cancel</button>
+      <button onclick="confirmDelete()" class="btn btn-danger flex-1">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed top-0 left-0 h-full w-60 bg-white border-r border-slate-100 z-40 flex flex-col transition-transform duration-300">
+  <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
+    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0"><span class="text-white font-black text-xs mono">xtc</span></div>
+    <div class="flex-1"><div class="text-sm font-bold text-slate-900">XtermChat</div><div class="text-[10px] text-slate-400 mono">Admin Panel</div></div>
+    <button onclick="closeSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 p-1 text-lg">✕</button>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <div class="px-1 mb-3 text-[9px] font-bold uppercase tracking-widest text-slate-300 mono">Navigation</div>
+    <a href="/dashboard" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">◈</span><span>Dashboard</span></a>
+    <a href="/rooms" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-50 text-blue-600"><span class="w-5 text-center">⊞</span><span>Rooms</span><span class="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"></span></a>
+    <a href="/chat" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">◎</span><span>Chat</span></a>
+    <a href="/bots" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">⊕</span><span>Bots</span></a>
+  </nav>
+  <div class="px-4 py-4 border-t border-slate-100">
+    <div class="flex items-center gap-3 mb-3">
+      <div id="sb-avatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">--</div>
+      <div class="min-w-0"><div id="sb-user" class="text-sm font-bold text-slate-800 truncate">—</div><div id="sb-ip" class="text-[10px] text-slate-400 truncate mono">—</div></div>
+    </div>
+    <button onclick="logout()" class="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">← Disconnect</button>
+  </div>
+</aside>
+<div id="overlay" onclick="closeSidebar()" style="display:none" class="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-sm"></div>
+
+<!-- Main -->
+<div class="lg:pl-60 min-h-screen">
+  <header class="sticky top-0 z-20 bg-white border-b border-slate-100 px-5 lg:px-8 h-14 flex items-center gap-4">
+    <button onclick="openSidebar()" class="lg:hidden text-slate-500 hover:text-slate-800 p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+    <h1 class="text-base font-bold text-slate-800">Rooms</h1>
+    <div class="ml-auto">
+      <button onclick="document.getElementById('createModal').style.display='flex'; setTimeout(()=>document.getElementById('newName').focus(),100)"
+        class="btn btn-primary text-xs py-2 px-4">+ Create Room</button>
+    </div>
+  </header>
+
+  <main class="p-5 lg:p-8 max-w-5xl mx-auto">
+    <div class="flex items-center justify-between mb-5">
+      <div>
+        <h2 class="text-lg font-bold text-slate-900">All Rooms</h2>
+        <p class="text-sm text-slate-400 mt-0.5">Manage chat rooms on your server</p>
+      </div>
+    </div>
+    <div id="roomList" class="card">
+      <div class="flex items-center justify-center h-32 text-slate-300 text-sm mono">Loading...</div>
+    </div>
+  </main>
+</div>
+
+<script>
+let deleteTarget = null;
+
+(async () => {
+  const s = requireSession();
+  if (!s) return;
+  await loadRooms();
+})();
+
+async function loadRooms() {
+  const s  = requireSession();
+  const el = document.getElementById('roomList');
+  if (!el) return;
+
+  const { ok, data } = await GET('/rooms');
+  const rooms = data?.rooms || [];
+
+  if (!rooms.length) {
+    el.innerHTML = `<div class="flex flex-col items-center justify-center py-14 text-center">
+      <div class="text-4xl mb-3">⊞</div>
+      <div class="text-slate-500 font-semibold mb-1">No rooms yet</div>
+      <div class="text-sm text-slate-400">Create your first room to get started</div>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="divide-y divide-slate-50">
+      ${rooms.map(r => `
+        <div class="flex items-center gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors">
+          <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 font-bold text-sm mono shrink-0">#</div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-bold text-slate-800 mono">@${r.name}</span>
+              ${r.has_password
+                ? '<span class="badge bg-amber-50 text-amber-600">🔒 Private</span>'
+                : '<span class="badge bg-green-50 text-green-600">● Open</span>'}
+            </div>
+            <div class="text-xs text-slate-400 mt-0.5 truncate">${r.description || 'No description'} · by ${r.creator}</div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a href="/chat?room=${encodeURIComponent(r.name)}" class="btn btn-ghost text-xs py-1.5 px-3" style="text-decoration:none">Chat →</a>
+            <button onclick="openDelete('${r.name}')" class="btn btn-danger text-xs py-1.5 px-3">Delete</button>
+          </div>
+        </div>`).join('')}
+    </div>
+    <div class="px-5 py-3 bg-slate-50/60 rounded-b-2xl border-t border-slate-100">
+      <span class="text-xs text-slate-400 mono">${rooms.length} room(s) total</span>
+    </div>`;
+}
+
+function openCreate() {
+  document.getElementById('createModal').style.display = 'flex';
+  setTimeout(() => document.getElementById('newName').focus(), 100);
+}
+function closeCreate() {
+  document.getElementById('createModal').style.display = 'none';
+  document.getElementById('newName').value = '';
+  document.getElementById('newPass').value = '';
+  document.getElementById('newDesc').value = '';
+}
+async function createRoom() {
+  const s    = requireSession();
+  const name = document.getElementById('newName').value.trim().toLowerCase();
+  const pass = document.getElementById('newPass').value.trim();
+  const desc = document.getElementById('newDesc').value.trim();
+  if (!name) return toast('Room name is required', 'warn');
+  if (/[^a-z0-9_-]/.test(name)) return toast('Only lowercase letters, numbers, hyphens', 'warn');
+  const { ok, data } = await POST('/create-room', {
+    room: name, user: s.user.toLowerCase(), password: pass,
+    description: desc, created_at: Math.floor(Date.now()/1000), pin: s.pin,
+  });
+  if (ok) { toast(`@${name} created!`, 'success'); closeCreate(); loadRooms(); }
+  else    toast(data?.message || 'Failed', 'error');
+}
+
+function openDelete(name) {
+  deleteTarget = name;
+  document.getElementById('deleteRoomName').textContent = `@${name}`;
+  document.getElementById('deleteModal').style.display = 'flex';
+}
+function closeDelete() {
+  deleteTarget = null;
+  document.getElementById('deleteModal').style.display = 'none';
+}
+async function confirmDelete() {
+  if (!deleteTarget) return;
+  const s = requireSession();
+  const { ok, data } = await POST('/delete-room', { room: deleteTarget, user: s.user.toLowerCase(), pin: s.pin });
+  if (ok) { toast(`@${deleteTarget} deleted`, 'success'); closeDelete(); loadRooms(); }
+  else    { toast(data?.message || 'Failed', 'error'); closeDelete(); }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeCreate(); closeDelete(); } });
+</script>
+</body>
+</html>

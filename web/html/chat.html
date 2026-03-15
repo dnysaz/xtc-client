@@ -1,405 +1,625 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XtermChat | Messaging</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        
-        /* Messenger Style Bubbles */
-        .message-bubble { 
-            max-width: 80%; 
-            position: relative; 
-            word-wrap: break-word; 
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        .bubble-me {
-            background: linear-gradient(135deg, #0084ff, #0078ff);
-            color: white;
-            border-radius: 18px 18px 4px 18px;
-        }
-        .bubble-them {
-            background: #f0f0f0;
-            color: #1c1e21;
-            border-radius: 18px 18px 18px 4px;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>XtermChat · Chat</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="/_layout.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:'DM Sans',sans-serif;height:100vh;overflow:hidden;background:#f8fafc}
+  .mono{font-family:'JetBrains Mono',monospace}
 
-        /* Link Styling */
-        .chat-link {
-            text-decoration: underline;
-            font-weight: 500;
-        }
-        .bubble-them .chat-link {
-            color: #0084ff;
-        }
-        .bubble-me .chat-link {
-            color: #e0f2fe; /* Light blue for readability on dark blue background */
-        }
-        
-        @media (min-width: 768px) { .message-bubble { max-width: 65%; } }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-        .chat-container { scroll-behavior: smooth; }
-        
-        #sidebar { 
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            z-index: 45; 
-            top: 3.5rem; 
-            height: calc(100vh - 3.5rem);
-        }
-        @media (max-width: 767px) {
-            #sidebar.hidden-mobile { transform: translateX(-100%); }
-            #sidebar.show-mobile { transform: translateX(0); }
-        }
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar{width:4px}
+  ::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:4px}
 
-        @keyframes slideUp {
-            from { transform: translate(-50%, 100%); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
-        }
-        .toast-active { animation: slideUp 0.3s ease forwards; }
-    </style>
+  /* ── Sidebar ── */
+  #sidebar{transform:translateX(-100%)}
+  @media(min-width:1024px){#sidebar{transform:translateX(0)}}
+
+  /* ── Bubbles ── */
+  .bubble {
+    display: inline-block;
+    max-width: 100%;
+    word-break: break-word;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 10px 14px;
+  }
+  .bubble-me {
+    background: #2563eb;
+    color: #fff;
+    border-radius: 18px 18px 4px 18px;
+  }
+  .bubble-them {
+    background: #fff;
+    color: #1e293b;
+    border-radius: 18px 18px 18px 4px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px rgba(0,0,0,.05);
+  }
+  .bubble-bot {
+    background: #f0fdf4;
+    color: #14532d;
+    border-radius: 18px 18px 18px 4px;
+    border: 1px solid #bbf7d0;
+    white-space: pre-wrap;
+  }
+
+  /* ── Links inside bubbles ── */
+  .bubble-me   a.lnk { color: #bfdbfe; text-decoration: underline; }
+  .bubble-them a.lnk { color: #2563eb; text-decoration: underline; }
+  .bubble-bot  a.lnk { color: #16a34a; text-decoration: underline; }
+
+  /* ── Link preview card ── */
+  .link-preview {
+    margin-top: 8px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,.08);
+    background: #fff;
+    max-width: 320px;
+    text-decoration: none;
+    display: block;
+    transition: box-shadow .2s;
+    cursor: pointer;
+  }
+  .link-preview:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+  .bubble-me .link-preview {
+    border-color: rgba(255,255,255,.2);
+    background: rgba(255,255,255,.12);
+  }
+  .bubble-me .link-preview .preview-text { color: rgba(255,255,255,.9); }
+  .bubble-me .link-preview .preview-desc { color: rgba(255,255,255,.65); }
+  .bubble-me .link-preview .preview-domain { color: rgba(255,255,255,.5); }
+
+  .preview-img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+  }
+  .preview-body { padding: 10px 12px; }
+  .preview-text {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .preview-desc {
+    font-size: 11.5px;
+    color: #64748b;
+    margin-top: 3px;
+    line-height: 1.45;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .preview-domain {
+    font-size: 10px;
+    color: #94a3b8;
+    margin-top: 5px;
+    font-family: 'JetBrains Mono', monospace;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .preview-favicon {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+  .preview-skeleton {
+    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 8px;
+  }
+  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+  /* ── Message input ── */
+  #msgInput {
+    flex: 1;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 10px 15px;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    transition: all .2s;
+    font-family: 'DM Sans', sans-serif;
+    max-height: 120px;
+    line-height: 1.5;
+  }
+  #msgInput:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px #2563eb18; }
+
+  /* ── Room list ── */
+  .room-item { cursor: pointer; transition: all .15s; border: 1px solid transparent; border-radius: 12px; }
+  .room-item:hover  { background: #f1f5f9; }
+  .room-item.active { background: #eff6ff; border-color: #bfdbfe; }
+
+  /* ── Modal ── */
+  .modal-bg { position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px); }
+  .modal    { background:#fff;border-radius:18px;padding:24px;width:100%;max-width:340px; }
+
+  /* ── Message animation ── */
+  .msg-new { animation: fadeUp .22s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+  /* ── Avatar colors ── */
+  .av-0{background:#3b82f6}.av-1{background:#8b5cf6}.av-2{background:#ec4899}
+  .av-3{background:#f59e0b}.av-4{background:#10b981}.av-5{background:#ef4444}
+  .av-6{background:#06b6d4}.av-7{background:#84cc16}
+</style>
 </head>
-<body class="bg-white text-gray-900 h-screen flex flex-col overflow-hidden">
+<body>
 
-    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] min-w-[280px] bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4">
-        <div id="toast-icon" class="text-lg">⚠️</div>
-        <div class="flex flex-col">
-            <p id="toast-msg" class="text-xs font-bold leading-tight"></p>
-        </div>
+<!-- Password Modal -->
+<div id="passModal" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="text-2xl mb-3">🔒</div>
+    <h3 class="text-base font-bold text-slate-900 mb-1">Private Room</h3>
+    <p class="text-sm text-slate-400 mb-4">Enter password to join</p>
+    <input id="passInput" type="password" placeholder="Room password"
+      class="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-blue-400 mb-4"
+      onkeydown="if(event.key==='Enter')submitPass()">
+    <div class="flex gap-3">
+      <button onclick="closePass()" class="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">Cancel</button>
+      <button onclick="submitPass()" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold">Join</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed top-0 left-0 h-full w-60 bg-white border-r border-slate-100 z-40 flex flex-col transition-transform duration-300">
+  <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
+    <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center shrink-0"><span class="text-white font-black text-xs mono">xtc</span></div>
+    <div class="flex-1"><div class="text-sm font-bold text-slate-900">XtermChat</div><div class="text-[10px] text-slate-400 mono">Admin Panel</div></div>
+    <button onclick="closeSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 p-1 text-lg">✕</button>
+  </div>
+  <nav class="flex-1 px-3 py-4 space-y-1">
+    <div class="px-1 mb-3 text-[9px] font-bold uppercase tracking-widest text-slate-300 mono">Navigation</div>
+    <a href="/dashboard" class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">◈</span><span>Dashboard</span></a>
+    <a href="/rooms"     class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">⊞</span><span>Rooms</span></a>
+    <a href="/chat"      class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold bg-blue-50 text-blue-600"><span class="w-5 text-center">◎</span><span>Chat</span><span class="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600"></span></a>
+    <a href="/bots"      class="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition-colors"><span class="w-5 text-center">⊕</span><span>Bots</span></a>
+  </nav>
+  <div class="px-4 py-4 border-t border-slate-100">
+    <div class="flex items-center gap-3 mb-3">
+      <div id="sb-avatar" class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">--</div>
+      <div class="min-w-0">
+        <div id="sb-user" class="text-sm font-bold text-slate-800 truncate">—</div>
+        <div id="sb-ip"   class="text-[10px] text-slate-400 truncate mono">—</div>
+      </div>
+    </div>
+    <button onclick="logout()" class="text-xs font-semibold text-slate-400 hover:text-red-500 transition-colors">← Disconnect</button>
+  </div>
+</aside>
+<div id="overlay" onclick="closeSidebar()" style="display:none" class="fixed inset-0 bg-black/40 z-30 lg:hidden backdrop-blur-sm"></div>
+
+<!-- ═══ CHAT LAYOUT ═══ -->
+<div class="lg:pl-60 h-screen flex flex-col">
+
+  <!-- Topbar -->
+  <header class="shrink-0 bg-white border-b border-slate-100 px-4 h-14 flex items-center gap-3 z-20">
+    <button onclick="openSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 p-1">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+      </svg>
+    </button>
+    <div id="roomHeader" class="flex-1">
+      <span class="text-sm font-semibold text-slate-400">Select a room to start chatting</span>
+    </div>
+    <button onclick="toggleRoomPanel()" class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors mono">
+      ⊞ Rooms
+    </button>
+  </header>
+
+  <!-- Body -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Room list -->
+    <div id="roomPanel" class="w-52 bg-white border-r border-slate-100 flex flex-col overflow-hidden shrink-0">
+      <div class="px-4 py-3 border-b border-slate-100">
+        <div class="text-[9px] font-bold uppercase tracking-widest text-slate-300 mono">Rooms</div>
+      </div>
+      <div id="roomItems" class="flex-1 overflow-y-auto py-2 px-2">
+        <div class="text-xs text-slate-300 text-center py-8 mono">Loading...</div>
+      </div>
     </div>
 
-    <header class="h-14 border-b border-gray-100 flex items-center justify-between px-4 md:px-8 bg-white/80 backdrop-blur-md shrink-0 z-[60] sticky top-0">
-        <div class="flex items-center gap-3">
-            <button onclick="toggleSidebar()" class="md:hidden p-2 hover:bg-gray-100 rounded-xl transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
-            </button>
-            <div class="flex items-center gap-3">
-                <div class="w-2.5 h-2.5 rounded-full bg-blue-600"></div>
-                <span class="text-xs md:text-sm font-bold tracking-tight text-gray-800">XtermChat</span>
-            </div>
+    <!-- Chat area -->
+    <div class="flex-1 flex flex-col overflow-hidden bg-slate-50">
+
+      <!-- Messages -->
+      <div id="messages" class="flex-1 overflow-y-auto px-4 md:px-6 py-5">
+        <div class="flex items-center justify-center h-full">
+          <div class="text-center text-slate-300">
+            <div class="text-4xl mb-3">◎</div>
+            <div class="text-sm font-medium">Select a room to start chatting</div>
+          </div>
         </div>
-        <div class="text-[10px] md:text-[11px] font-bold text-gray-400">
-            <span id="ip-label" class="text-blue-600">---</span>
+      </div>
+
+      <!-- Input area -->
+      <div id="inputArea" style="display:none" class="shrink-0 border-t border-slate-200 bg-white px-4 py-3">
+        <div class="flex items-end gap-2.5 max-w-3xl mx-auto">
+          <textarea id="msgInput" rows="2" placeholder="Type a message..."
+            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <button onclick="sendMsg()"
+            class="w-10 h-10 shrink-0 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-full flex items-center justify-center transition-all shadow-sm shadow-blue-200">
+            <svg class="w-4 h-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+          </button>
         </div>
-    </header>
-
-    <div class="flex flex-1 overflow-hidden relative">
-        <div id="overlay" onclick="toggleSidebar()" class="hidden fixed inset-0 bg-black/10 backdrop-blur-[2px] z-40 md:hidden"></div>
-
-        <aside id="sidebar" class="fixed md:relative w-64 flex flex-col bg-gray-50 md:bg-gray-50/50 border-r border-gray-100 hidden-mobile">
-            <div class="flex-1 overflow-y-auto p-4 scrollbar-hide">
-                <div class="space-y-6">
-                    <div>
-                        <h3 class="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-3 px-2">Rooms</h3>
-                        <div id="public-rooms" class="space-y-0.5"></div>
-                    </div>
-                    <div>
-                        <h3 class="text-[10px] text-yellow-600 uppercase font-bold tracking-widest mb-3 px-2">Private</h3>
-                        <div id="private-rooms" class="space-y-0.5"></div>
-                    </div>
-                </div>
-
-                <div class="flex items-center mt-24 gap-3 mb-3 px-2">
-                    <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-xs uppercase">
-                        <span id="user-initial">K</span>
-                    </div>
-                    <span id="user-label" class="text-xs font-bold text-gray-700 truncate">---</span>
-                </div>
-                <button onclick="logout()" class="w-full py-2.5 text-[11px] font-bold text-red-500 bg-red-50 hover:bg-red-100 rounded-xl transition-all active:scale-95 uppercase tracking-wider">
-                    Sign Out
-                </button>
-            </div>
-        </aside>
-
-        <main class="flex-1 flex flex-col bg-white">
-            <div class="h-14 border-b border-gray-50 flex items-center px-6 justify-between shrink-0">
-                <div class="flex flex-col">
-                    <span class="text-sm font-bold text-gray-900" id="current-room-label">Select a room</span>
-                    <button id="room-status-indicator" onclick="openRoomDetail()" class="hidden items-center gap-1 group">
-                        <span id="current-creator-label" class="text-[9px] text-gray-400 font-bold uppercase group-hover:text-blue-600">---</span>
-                    </button>
-                </div>
-            </div>
-
-            <div id="chat-content" class="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 chat-container">
-                <div id="empty-state" class="h-full flex flex-col items-center justify-center text-gray-300">
-                    <p class="text-[10px] font-bold uppercase tracking-widest">Start a conversation</p>
-                </div>
-            </div>
-
-            <div id="input-container" class="hidden p-4 md:p-6 bg-white shrink-0 border-t border-gray-50">
-                <div class="relative max-w-4xl mx-auto">
-                    <div class="relative flex items-center">
-                        <textarea id="msgInput" rows="1" 
-                            class="flex-1 bg-gray-100 border-0 rounded-[24px] pl-5 pr-14 py-3 text-sm text-gray-900 placeholder-gray-400 focus:ring-0 transition-all font-medium resize-none overflow-y-auto max-h-32" 
-                            placeholder="Aa" autocomplete="off"
-                            style="min-height: 46px;"></textarea>
-                        
-                        <button onclick="sendMessage()" 
-                            class="absolute right-2 bottom-1.5 p-2 text-blue-600 hover:bg-blue-200/50 rounded-full transition-all active:scale-90">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M3.4 20.4l17.45-7.48c.81-.35.81-1.49 0-1.84L3.4 3.6c-.66-.29-1.39.2-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </main>
+      </div>
     </div>
+  </div>
+</div>
 
-    <div id="passwordModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
-        <div class="w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
-            <div class="text-center mb-6">
-                <h3 class="text-lg font-bold text-gray-900" id="modalRoomTitle">Private Access</h3>
-                <p class="text-xs text-gray-400 mt-1">Enter password to join.</p>
-            </div>
-            <input type="password" id="modalPasswordInput" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-4 text-center text-sm focus:ring-0 outline-none mb-6 font-bold" placeholder="••••••••">
-            <div class="flex gap-2">
-                <button onclick="closeModal()" class="flex-1 py-3 text-xs font-bold text-gray-400 uppercase">Cancel</button>
-                <button onclick="confirmPassword()" class="flex-1 py-3 bg-blue-600 text-white text-xs font-bold uppercase rounded-xl">Join</button>
-            </div>
+<script>
+const params     = new URLSearchParams(window.location.search);
+let currentRoom  = params.get('room') || '';
+let currentPass  = '';
+let lastCount    = 0;
+let pollInterval = null;
+let pendingRoom  = null;
+
+// OG cache: url → { title, desc, image, domain, favicon }
+const ogCache = {};
+
+(async () => {
+  const s = requireSession();
+  if (!s) return;
+  await loadRoomList();
+  if (currentRoom) await joinRoom(currentRoom, false);
+})();
+
+// ── Room list ─────────────────────────────────────────────────────────────────
+async function loadRoomList() {
+  const { data } = await GET('/rooms');
+  const rooms    = data?.rooms || [];
+  const el       = document.getElementById('roomItems');
+  if (!el) return;
+
+  if (!rooms.length) {
+    el.innerHTML = '<div class="text-xs text-slate-400 text-center py-8 px-3">No rooms.<br>Create one first.</div>';
+    return;
+  }
+
+  el.innerHTML = rooms.map(r => `
+    <div onclick="joinRoom('${r.name}', ${r.has_password})"
+      class="room-item flex items-center gap-2.5 px-3 py-2.5 mb-0.5 ${currentRoom === r.name ? 'active' : ''}">
+      <div class="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600 text-xs font-bold mono shrink-0">#</div>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-semibold text-slate-800 truncate mono">@${r.name}</div>
+        <div class="text-[10px] text-slate-400">${r.has_password ? '🔒 Private' : 'Open'}</div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Join room ─────────────────────────────────────────────────────────────────
+async function joinRoom(name, hasPassword, knownPass) {
+  // Private room — show password modal (unless we already have the pass)
+  if (hasPassword && !knownPass && name !== currentRoom) {
+    pendingRoom = name;
+    document.getElementById('passInput').value = '';
+    document.getElementById('passModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('passInput').focus(), 100);
+    return;
+  }
+
+  currentRoom = name;
+  if (!hasPassword && !knownPass) currentPass = '';
+  if (knownPass) currentPass = knownPass;
+  lastCount   = 0;
+
+  history.replaceState({}, '', `/chat?room=${encodeURIComponent(name)}`);
+
+  // Update topbar
+  document.getElementById('roomHeader').innerHTML = `
+    <div class="flex items-center gap-2">
+      <span class="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold mono">#</span>
+      <span class="text-sm font-bold text-slate-800">${name}</span>
+    </div>`;
+
+  document.getElementById('inputArea').style.display = 'block';
+
+  // Highlight active room
+  document.querySelectorAll('.room-item').forEach(el => {
+    const active = el.textContent.includes(`@${name}`);
+    el.classList.toggle('active', active);
+  });
+
+  // Hide room panel on mobile
+  if (window.innerWidth < 768) {
+    document.getElementById('roomPanel').classList.add('hidden');
+  }
+
+  if (pollInterval) clearInterval(pollInterval);
+  await fetchMessages();
+  pollInterval = setInterval(fetchMessages, 2000);
+}
+
+// ── Password modal ────────────────────────────────────────────────────────────
+async function submitPass() {
+  const pass = document.getElementById('passInput').value;
+  const { ok } = await POST('/verify-room', { room: pendingRoom, password: pass });
+  if (ok) {
+    currentPass = pass;
+    document.getElementById('passModal').style.display = 'none';
+    joinRoom(pendingRoom, true, pass);  // pass knownPass so it won't be cleared
+  } else {
+    const inp = document.getElementById('passInput');
+    inp.style.borderColor = '#f87171';
+    inp.style.animation   = 'shake .3s';
+    setTimeout(() => { inp.style.borderColor = ''; inp.style.animation = ''; }, 800);
+  }
+}
+function closePass() {
+  pendingRoom = null;
+  document.getElementById('passModal').style.display = 'none';
+}
+
+// ── Fetch & render messages ───────────────────────────────────────────────────
+async function fetchMessages() {
+  if (!currentRoom) return;
+  const s = requireSession();
+  try {
+    const path = `/messages/${encodeURIComponent(currentRoom)}${currentPass ? '?password=' + encodeURIComponent(currentPass) : ''}`;
+    const { ok, data } = await GET(path);
+    if (!ok || !Array.isArray(data)) return;
+    if (data.length === lastCount) return;
+
+    const el       = document.getElementById('messages');
+    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 100;
+    const prevCount = lastCount;
+
+    if (data.length === 0) {
+      el.innerHTML = `
+        <div class="flex items-center justify-center h-full">
+          <div class="text-center text-slate-300">
+            <div class="text-3xl mb-2">◎</div>
+            <div class="text-sm">No messages yet. Say hello!</div>
+          </div>
+        </div>`;
+      lastCount = 0;
+      return;
+    }
+
+    // Group consecutive messages from same sender
+    const groups = groupMessages(data);
+    el.innerHTML  = groups.map((g, gi) => renderGroup(g, s.user, gi, prevCount, data)).join('');
+    lastCount = data.length;
+
+    if (atBottom) el.scrollTop = el.scrollHeight;
+
+    // Fetch OG data for any new URLs
+    el.querySelectorAll('[data-og-url]').forEach(placeholder => {
+      const url = placeholder.getAttribute('data-og-url');
+      fetchOG(url, placeholder);
+    });
+
+  } catch(e) {}
+}
+
+// ── Group messages by sender ──────────────────────────────────────────────────
+function groupMessages(msgs) {
+  const groups = [];
+  let cur = null;
+  msgs.forEach((m, i) => {
+    const key = m.sender + (m.pin || '');
+    if (!cur || cur.key !== key) {
+      cur = { key, sender: m.sender, pin: m.pin, msgs: [], firstIdx: i };
+      groups.push(cur);
+    }
+    cur.msgs.push({ ...m, idx: i });
+  });
+  return groups;
+}
+
+// ── Render a group of messages from same sender ───────────────────────────────
+function renderGroup(group, me, groupIdx, prevCount, allMsgs) {
+  const isMe  = group.sender.toLowerCase() === me.toLowerCase();
+  const isBot = /BOT|MONITOR|WATCHDOG|DEPLOY|BACKUP/i.test(group.sender);
+  const isNew = group.firstIdx >= prevCount;
+  const cls   = isNew ? 'msg-new' : '';
+
+  // Avatar color based on sender name hash
+  const avColor = 'av-' + (group.sender.charCodeAt(0) % 8);
+  const initials = group.sender.slice(0, 2).toUpperCase();
+
+  const bubbles = group.msgs.map((m, mi) => {
+    const ts   = (m.timestamp || '').slice(11, 16);
+    const isFirst = mi === 0;
+    const isLast  = mi === group.msgs.length - 1;
+
+    // Linkify content
+    const escaped = (m.content || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Detect URLs
+    const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
+    const urls     = [...new Set(escaped.match(urlRegex) || [])];
+    const linked   = escaped.replace(urlRegex, `<a href="$1" target="_blank" rel="noopener" class="lnk">$1</a>`);
+
+    // Bubble radius tweaks for grouped messages
+    let radius = '';
+    if (isMe) {
+      if (group.msgs.length === 1) radius = 'border-radius:18px 18px 4px 18px';
+      else if (isFirst)            radius = 'border-radius:18px 18px 8px 18px';
+      else if (isLast)             radius = 'border-radius:18px 18px 4px 18px';
+      else                         radius = 'border-radius:18px 18px 8px 18px';
+    } else {
+      if (group.msgs.length === 1) radius = 'border-radius:18px 18px 18px 4px';
+      else if (isFirst)            radius = 'border-radius:18px 18px 18px 8px';
+      else if (isLast)             radius = 'border-radius:18px 18px 18px 4px';
+      else                         radius = 'border-radius:18px 18px 18px 8px';
+    }
+
+    const bubbleClass = isBot ? 'bubble bubble-bot' : (isMe ? 'bubble bubble-me' : 'bubble bubble-them');
+
+    // OG preview placeholders for each URL
+    const previews = urls.map(url => `
+      <div data-og-url="${url.replace(/"/g, '&quot;')}" class="og-placeholder">
+        <div class="preview-skeleton" style="height:80px;margin-top:8px;border-radius:12px"></div>
+      </div>`).join('');
+
+    return `
+      <div class="flex ${isMe ? 'justify-end' : ''} ${mi > 0 ? 'mt-1' : ''}">
+        <div style="max-width:72%">
+          <div class="${bubbleClass}" style="${radius}">${linked}</div>
+          ${previews}
         </div>
-    </div>
+      </div>
+      ${isLast ? `<div class="text-[10px] text-slate-400 mt-1 ${isMe ? 'text-right' : 'pl-9'} mono">${ts}</div>` : ''}`;
+  }).join('');
 
-    <div id="roomDetailModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm transition-all">
-        <div class="w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl">
-            <h3 class="text-lg font-bold text-gray-900 mb-4" id="detailRoomName">Room Detail</h3>
-            <div class="space-y-4 mb-6">
-                <div>
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Creator</span>
-                    <p id="detailRoomCreator" class="text-sm font-bold text-blue-600">---</p>
-                </div>
-                <div>
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Description</span>
-                    <p id="detailRoomDesc" class="text-sm text-gray-600 italic">No description.</p>
-                </div>
-                <div>
-                    <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Created At</span>
-                    <p id="detailRoomCreatedAt" class="text-sm font-bold text-gray-800">---</p>
-                </div>
-            </div>
-            <button onclick="closeRoomDetail()" class="w-full py-3 bg-gray-900 text-white text-[10px] font-bold uppercase rounded-xl tracking-widest active:scale-95 transition-all">Close</button>
+  if (isMe) {
+    return `<div class="mb-3 ${cls}">${bubbles}</div>`;
+  }
+
+  if (isBot) {
+    return `
+      <div class="mb-3 ${cls}">
+        <div class="flex items-center gap-2 mb-1.5 pl-1">
+          <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-sm shrink-0">🤖</div>
+          <span class="text-[11px] font-bold text-green-600 mono">${group.sender}</span>
         </div>
-    </div>
+        ${bubbles}
+      </div>`;
+  }
 
-    <script>
-        const session = JSON.parse(localStorage.getItem('xtc_session'));
-        if (!session) window.location.href = '/';
+  return `
+    <div class="mb-3 ${cls}">
+      <div class="flex items-center gap-2 mb-1.5 pl-1">
+        <div class="w-6 h-6 rounded-full ${avColor} flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+          ${initials}
+        </div>
+        <span class="text-[11px] font-semibold text-slate-500 mono">${group.sender}</span>
+      </div>
+      ${bubbles}
+    </div>`;
+}
 
-        const API_URL = `http://${session.ip}:${session.port}`;
-        let currentRoom = ""; 
-        let currentUser = session.user;
-        let currentPassword = "";
-        let pendingRoom = "";
-        let isUserScrolling = false;
-        let allRoomsData = [];
+// ── OG preview fetcher ────────────────────────────────────────────────────────
+async function fetchOG(url, placeholder) {
+  if (!placeholder) return;
 
-        const EMOJI_MAP = {
-            ":fire": "🔥", ":nice": "👍", ":cool": "😎", ":rocket": "🚀", ":laugh": "😂",
-            ":check": "✅", ":warn": "⚠️", ":heart": "❤️", ":star": "⭐", ":ghost": "👻",
-            ":smile": "😊", ":party": "🎉", ":pray": "🙏", ":100": "💯", ":eyes": "👀"
-        };
+  // Check cache
+  if (ogCache[url]) {
+    renderPreview(placeholder, url, ogCache[url]);
+    return;
+  }
 
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('overlay');
-        const chatContent = document.getElementById('chat-content');
-        const msgInput = document.getElementById('msgInput');
+  // Use allorigins proxy to fetch OG tags (avoids CORS)
+  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
 
-        document.getElementById('ip-label').innerText = session.ip;
-        document.getElementById('user-label').innerText = currentUser;
-        document.getElementById('user-initial').innerText = currentUser.charAt(0).toUpperCase();
+  try {
+    const res  = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+    const json = await res.json();
+    const html = json?.contents || '';
 
-        // --- URL DETECTION ENGINE ---
-        function parseURLs(text) {
-            const urlRegex = /(https?:\/\/[^\s]+)/g;
-            return text.replace(urlRegex, function(url) {
-                return `<a href="${url}" target="_blank" class="chat-link">${url}</a>`;
-            });
-        }
+    // Parse OG tags from raw HTML
+    const getOG = (prop) => {
+      const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))
+              || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, 'i'));
+      return m ? m[1].replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)).trim() : '';
+    };
+    const getTitle = () => {
+      const og = getOG('og:title');
+      if (og) return og;
+      const m = html.match(/<title[^>]*>([^<]+)<\/title>/i);
+      return m ? m[1].trim() : '';
+    };
 
-        // --- TIMESTAMP FORMATTER ---
-        function formatTimestamp(ts) {
-            if (!ts || ts === 0) return "N/A";
-            const date = new Date(ts * 1000);
-            return date.toLocaleDateString('en-GB', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-            });
-        }
+    const domain  = new URL(url).hostname.replace(/^www\./, '');
+    const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+    const data    = {
+      title:   getTitle().slice(0, 80),
+      desc:    (getOG('og:description') || getOG('description')).slice(0, 140),
+      image:   getOG('og:image') || '',
+      domain,
+      favicon,
+    };
 
-        function notify(message, icon = "⚠️") {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = message;
-            document.getElementById('toast-icon').innerText = icon;
-            toast.classList.remove('hidden');
-            toast.classList.add('toast-active');
-            setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('toast-active'); }, 3000);
-        }
+    ogCache[url] = data;
+    renderPreview(placeholder, url, data);
+  } catch(e) {
+    // On failure — show minimal domain card
+    try {
+      const domain  = new URL(url).hostname.replace(/^www\./, '');
+      const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+      ogCache[url]  = { title: '', desc: '', image: '', domain, favicon };
+      renderPreview(placeholder, url, ogCache[url]);
+    } catch { placeholder.remove(); }
+  }
+}
 
-        function toggleSidebar() {
-            if (window.innerWidth >= 768) return;
-            const isHidden = sidebar.classList.contains('hidden-mobile');
-            sidebar.classList.toggle('hidden-mobile', !isHidden);
-            sidebar.classList.toggle('show-mobile', isHidden);
-            overlay.classList.toggle('hidden', !isHidden);
-        }
+function renderPreview(placeholder, url, d) {
+  // If no useful data and no image, show minimal link card
+  const hasContent = d.title || d.image;
+  if (!hasContent) {
+    placeholder.innerHTML = `
+      <a href="${url}" target="_blank" rel="noopener" class="link-preview" style="padding:10px 12px;display:flex;align-items:center;gap:8px;text-decoration:none">
+        <img src="${d.favicon}" class="preview-favicon" onerror="this.style.display='none'">
+        <span class="preview-domain" style="margin:0;font-size:12px;color:#475569;font-weight:600">${d.domain}</span>
+        <span style="color:#94a3b8;font-size:11px;margin-left:auto">↗</span>
+      </a>`;
+    return;
+  }
 
-        msgInput.addEventListener('input', function() {
-            this.style.height = 'auto';
-            this.style.height = (this.scrollHeight) + 'px';
-        });
+  placeholder.innerHTML = `
+    <a href="${url}" target="_blank" rel="noopener" class="link-preview" style="text-decoration:none">
+      ${d.image ? `<img src="${d.image}" class="preview-img" onerror="this.style.display='none'" loading="lazy">` : ''}
+      <div class="preview-body">
+        ${d.title ? `<div class="preview-text">${d.title}</div>` : ''}
+        ${d.desc  ? `<div class="preview-desc">${d.desc}</div>`  : ''}
+        <div class="preview-domain">
+          <img src="${d.favicon}" class="preview-favicon" onerror="this.style.display='none'">
+          ${d.domain}
+        </div>
+      </div>
+    </a>`;
+}
 
-        msgInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                if (!e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                }
-            }
-        });
+// ── Send ──────────────────────────────────────────────────────────────────────
+async function sendMsg() {
+  const s   = requireSession();
+  const inp = document.getElementById('msgInput');
+  const msg = inp.value.trim();
+  if (!msg || !currentRoom) return;
+  inp.value            = '';
+  inp.style.height     = 'auto';
+  await POST('/send', {
+    room: currentRoom, password: currentPass,
+    user: s.user, pin: s.pin, content: msg,
+  });
+  await fetchMessages();
+}
 
-        async function fetchRooms() {
-            try {
-                const res = await fetch(`${API_URL}/rooms`);
-                const data = await res.json();
-                allRoomsData = data.rooms;
-                const publicDiv = document.getElementById('public-rooms');
-                const privateDiv = document.getElementById('private-rooms');
-                let publicHTML = "", privateHTML = "";
-
-                data.rooms.forEach(r => {
-                    const isActive = r.name === currentRoom;
-                    const hasPass = r.has_password === true || r.has_password === 1 || String(r.has_password) === "true";
-                    const styleClass = isActive ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:bg-gray-200';
-                    const item = `<div onclick="handleRoomClick('${r.name}', ${hasPass})" class="cursor-pointer px-3 py-2.5 rounded-xl transition-all flex items-center justify-between text-xs font-bold ${styleClass}"><span class="truncate"># ${r.name}</span>${hasPass ? '🔒' : ''}</div>`;
-                    if (hasPass) privateHTML += item; else publicHTML += item;
-                    if(isActive) document.getElementById('current-creator-label').innerText = `Created by ${r.creator || 'SYSTEM'}`;
-                });
-                publicDiv.innerHTML = publicHTML || '<p class="text-[9px] text-gray-400 p-2 italic">No rooms</p>';
-                privateDiv.innerHTML = privateHTML || '<p class="text-[9px] text-gray-400 p-2 italic">No private rooms</p>';
-            } catch (err) {}
-        }
-
-        function openRoomDetail() {
-            const roomData = allRoomsData.find(r => r.name === currentRoom);
-            if (!roomData) return;
-            document.getElementById('detailRoomName').innerText = `#${roomData.name}`;
-            document.getElementById('detailRoomCreator').innerText = roomData.creator || 'UNKNOWN';
-            document.getElementById('detailRoomDesc').innerText = roomData.description || 'No description.';
-            document.getElementById('detailRoomCreatedAt').innerText = formatTimestamp(roomData.created_at);
-            document.getElementById('roomDetailModal').classList.remove('hidden');
-        }
-
-        function closeRoomDetail() { document.getElementById('roomDetailModal').classList.add('hidden'); }
-
-        function handleRoomClick(name, isPrivate) {
-            if (window.innerWidth < 768) toggleSidebar(); 
-            if (isPrivate && name !== currentRoom) {
-                pendingRoom = name;
-                document.getElementById('modalRoomTitle').innerText = `#${name}`;
-                document.getElementById('passwordModal').classList.remove('hidden');
-            } else if (name !== currentRoom) { switchRoom(name, ""); }
-        }
-
-        function closeModal() { document.getElementById('passwordModal').classList.add('hidden'); pendingRoom = ""; }
-
-        async function confirmPassword() {
-            const pass = document.getElementById('modalPasswordInput').value;
-            await switchRoom(pendingRoom, pass);
-        }
-
-        async function switchRoom(name, pass) {
-            try {
-                const res = await fetch(`${API_URL}/messages/${name}?password=${pass}`);
-                if (!res.ok) { notify("Invalid Password", "❌"); return; }
-                
-                currentRoom = name; 
-                currentPassword = pass;
-
-                document.getElementById('current-room-label').innerText = `#${name}`;
-                
-                const emptyState = document.getElementById('empty-state');
-                if (emptyState) emptyState.remove();
-
-                document.getElementById('room-status-indicator').classList.remove('hidden');
-                document.getElementById('room-status-indicator').classList.add('flex');
-                
-                const inputContainer = document.getElementById('input-container');
-                inputContainer.classList.remove('hidden');
-
-                closeModal(); 
-                chatContent.innerHTML = ""; 
-                fetchMessages(true); 
-                fetchRooms();
-                
-                setTimeout(() => msgInput.focus(), 100);
-            } catch (e) { notify("Gateway error"); }
-        }
-
-        function formatTime(timestamp) {
-            if (!timestamp) return "";
-            try {
-                let cleanTS = timestamp.replace(' ', 'T');
-                if (!cleanTS.includes('Z')) cleanTS += 'Z';
-                const date = new Date(cleanTS);
-                const now = new Date();
-                const diff = Math.floor(Math.abs(now - date) / 1000);
-                if (diff < 60) return "Just now";
-                if (diff < 3600) return `${Math.floor(diff/60)}m`;
-                if (diff < 86400) return `${Math.floor(diff/3600)}h`;
-                return date.toLocaleDateString();
-            } catch (e) { return ""; }
-        }
-
-        async function fetchMessages(forceScroll = false) {
-            if (!currentRoom) return;
-            try {
-                const res = await fetch(`${API_URL}/messages/${currentRoom}?password=${currentPassword}`);
-                const data = await res.json();
-                const prevCount = chatContent.children.length;
-                chatContent.innerHTML = data.map(m => {
-                    const isMe = m.sender.toLowerCase() === currentUser.toLowerCase() && String(m.pin) === String(session.pin);
-                    const time = formatTime(m.timestamp); 
-                    const content = parseURLs(m.content);
-                    return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full">
-                        <span class="text-[9px] font-bold text-gray-400 mb-1 px-2 uppercase">${isMe ? '' : m.sender + ' • '}${time}</span>
-                        <div class="message-bubble px-4 py-2.5 ${isMe ? 'bubble-me' : 'bubble-them'}" style="white-space: pre-wrap;">${content}</div>
-                    </div>`;
-                }).join('');
-                if (forceScroll || (!isUserScrolling && data.length > prevCount)) chatContent.scrollTop = chatContent.scrollHeight;
-            } catch (e) {}
-        }
-
-        async function sendMessage() {
-            let content = msgInput.value.trim();
-            if (!content || !currentRoom) return;
-            for (const [code, icon] of Object.entries(EMOJI_MAP)) content = content.split(code).join(icon);
-            try {
-                await fetch(`${API_URL}/send`, {
-                    method: 'POST', headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ room: currentRoom, user: currentUser, pin: session.pin, content, password: currentPassword })
-                });
-                msgInput.value = ''; 
-                msgInput.style.height = 'auto';
-                fetchMessages(true);
-            } catch (e) {
-                notify("Failed to send message");
-            }
-        }
-
-        function logout() { localStorage.removeItem('xtc_session'); window.location.href = '/'; }
-        
-        setInterval(fetchMessages, 2000); 
-        setInterval(fetchRooms, 5000); 
-        fetchRooms();
-    </script>
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+}
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+function toggleRoomPanel() {
+  document.getElementById('roomPanel').classList.toggle('hidden');
+}
+</script>
 </body>
 </html>

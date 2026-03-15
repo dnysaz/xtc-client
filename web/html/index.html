@@ -1,193 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>XtermChat | Authorize</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-        @keyframes slideUp {
-            from { transform: translate(-50%, 100%); opacity: 0; }
-            to { transform: translate(-50%, 0); opacity: 1; }
-        }
-        .toast-active { animation: slideUp 0.3s ease forwards; }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        
-        .glass-effect { background: rgba(255, 255, 255, 0.8); backdrop-blur: 10px; }
-        .input-soft { @apply bg-gray-100 border-0 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XtermChat · Connect</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body{font-family:'DM Sans',sans-serif}
+  .mono{font-family:'JetBrains Mono',monospace}
+  .inp{width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:11px 14px;font-size:14px;font-weight:500;color:#0f172a;outline:none;transition:all .2s}
+  .inp:focus{border-color:#2563eb;background:#fff;box-shadow:0 0 0 3px #2563eb18}
+  .inp::placeholder{color:#94a3b8;font-weight:400}
+  .pin-box{width:100%;height:52px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;text-align:center;font-size:20px;font-weight:700;outline:none;transition:all .2s;font-family:'JetBrains Mono',monospace;color:#0f172a}
+  .pin-box:focus{border-color:#2563eb;background:#fff;box-shadow:0 0 0 3px #2563eb18}
+  .pin-box.ok{border-color:#2563eb;background:#eff6ff}
+  .lbl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#94a3b8;margin-bottom:5px;font-family:'JetBrains Mono',monospace}
+  .btn-main{width:100%;background:#0f172a;color:#fff;font-weight:700;padding:13px;border-radius:10px;border:none;cursor:pointer;font-size:13px;letter-spacing:.07em;text-transform:uppercase;transition:all .2s}
+  .btn-main:hover{background:#2563eb;box-shadow:0 8px 20px #2563eb30;transform:translateY(-1px)}
+  .btn-main:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .grid-bg{background-image:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);background-size:28px 28px}
+</style>
 </head>
-<body class="bg-white h-screen flex flex-col md:flex-row overflow-hidden transition-opacity duration-500">
-
-    <div id="toast" class="hidden fixed bottom-10 left-1/2 -translate-x-1/2 z-[200] min-w-[300px] bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-4">
-        <div id="toast-icon" class="text-lg">⚠️</div>
-        <div class="flex flex-col">
-            <p id="toast-msg" class="text-xs font-bold leading-tight"></p>
-        </div>
+<body class="min-h-screen bg-white flex">
+<div class="hidden lg:flex w-96 shrink-0 bg-blue-600 grid-bg flex-col justify-between p-12 text-white relative overflow-hidden">
+  <div class="absolute -bottom-20 -left-20 w-72 h-72 bg-blue-500 rounded-full opacity-40"></div>
+  <div class="absolute -top-10 -right-10 w-44 h-44 bg-blue-700 rounded-full opacity-30"></div>
+  <div class="relative z-10">
+    <div class="w-11 h-11 bg-white rounded-xl flex items-center justify-center mb-10">
+      <span class="text-blue-600 font-black text-sm mono">xtc</span>
     </div>
-
-    <div class="hidden md:flex flex-1 bg-gradient-to-br from-blue-600 to-blue-700 p-20 flex-col justify-between text-white relative">
-        <div class="relative z-10">
-            <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-16 shadow-lg">
-                <span class="text-blue-600 text-xl font-black italic tracking-tighter">xtc</span>
-            </div>
-            <h2 class="text-6xl font-black leading-[0.9] mb-8 uppercase tracking-tighter">UNIFIED<br>MESSAGING<br>GATEWAY.</h2>
-            <p class="text-blue-100 text-sm leading-relaxed max-w-[320px] font-medium opacity-80 italic">
-                Real-time synchronization between CLI, Web Interfaces, and Mobile Access.
-            </p>
-        </div>
-        <div class="relative z-10 flex gap-10">
-            <div class="flex flex-col gap-1">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-blue-200 opacity-60">Security</span>
-                <span class="text-xs font-bold uppercase">Encrypted</span>
-            </div>
-            <div class="flex flex-col gap-1">
-                <span class="text-[10px] font-bold uppercase tracking-widest text-blue-200 opacity-60">Network</span>
-                <span class="text-xs font-bold uppercase">Multi-Sync</span>
-            </div>
-        </div>
+    <h2 class="text-4xl font-black leading-tight mb-4 tracking-tight">XTERMCHAT<br>ADMIN</h2>
+    <p class="text-blue-100 text-sm leading-relaxed max-w-xs opacity-80">Manage rooms, bots, and messages on your self-hosted server.</p>
+  </div>
+  <div class="relative z-10 grid grid-cols-2 gap-5">
+    <div><div class="text-[10px] font-bold uppercase tracking-widest text-blue-200 opacity-60 mb-1 mono">Protocol</div><div class="text-sm font-bold mono">REST API</div></div>
+    <div><div class="text-[10px] font-bold uppercase tracking-widest text-blue-200 opacity-60 mb-1 mono">Auth</div><div class="text-sm font-bold mono">PIN-based</div></div>
+    <div><div class="text-[10px] font-bold uppercase tracking-widest text-blue-200 opacity-60 mb-1 mono">Storage</div><div class="text-sm font-bold mono">SQLite</div></div>
+    <div><div class="text-[10px] font-bold uppercase tracking-widest text-blue-200 opacity-60 mb-1 mono">Version</div><div class="text-sm font-bold mono">1.0.0</div></div>
+  </div>
+</div>
+<div class="flex-1 flex items-center justify-center p-6 lg:p-16 bg-slate-50">
+  <div class="w-full max-w-sm">
+    <div class="lg:hidden flex items-center gap-3 mb-10">
+      <div class="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center"><span class="text-white font-black text-xs mono">xtc</span></div>
+      <span class="text-lg font-bold text-slate-800">XtermChat</span>
     </div>
-
-    <div class="flex-1 flex flex-col justify-center p-8 md:p-24 bg-white">
-        <div class="max-w-[400px] w-full mx-auto">
-            <div class="mb-10">
-                <h1 class="text-3xl font-black tracking-tight text-gray-900 mb-2">xtc | authorize</h1>
-                <p class="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Identity Verification Required</p>
-            </div>
-
-            <div class="space-y-5">
-                <div class="flex gap-3">
-                    <div class="flex-[2]">
-                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-2 ml-1 tracking-widest">Server IP</label>
-                        <input type="text" id="ip" placeholder="127.0.0.1" 
-                            class="w-full bg-gray-100 border-0 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
-                    </div>
-                    <div class="flex-1">
-                        <label class="block text-[10px] font-bold uppercase text-gray-400 mb-2 ml-1 tracking-widest">Port</label>
-                        <input type="text" id="port" placeholder="8080" 
-                            class="w-full bg-gray-100 border-0 rounded-2xl px-5 py-4 text-sm font-semibold text-gray-900 text-center focus:ring-2 focus:ring-blue-500/20 transition-all outline-none">
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="block text-[10px] font-bold uppercase text-gray-400 mb-2 ml-1 tracking-widest">User Handle</label>
-                    <input type="text" id="user" placeholder="USERNAME" 
-                        class="w-full bg-gray-100 border-0 rounded-2xl px-5 py-4 text-sm font-bold uppercase text-gray-900 focus:ring-2 focus:ring-blue-500/20 transition-all outline-none" autocomplete="off">
-                </div>
-
-                <div>
-                    <label class="block text-[10px] font-bold uppercase text-gray-400 mb-2 ml-1 tracking-widest">Security PIN (5-Digits)</label>
-                    <div class="flex justify-between gap-2" id="pin-container">
-                        <input type="password" maxlength="1" class="pin-box w-full h-14 bg-gray-100 border-0 rounded-xl text-center text-xl font-black focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
-                        <input type="password" maxlength="1" class="pin-box w-full h-14 bg-gray-100 border-0 rounded-xl text-center text-xl font-black focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
-                        <input type="password" maxlength="1" class="pin-box w-full h-14 bg-gray-100 border-0 rounded-xl text-center text-xl font-black focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
-                        <input type="password" maxlength="1" class="pin-box w-full h-14 bg-gray-100 border-0 rounded-xl text-center text-xl font-black focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
-                        <input type="password" maxlength="1" class="pin-box w-full h-14 bg-gray-100 border-0 rounded-xl text-center text-xl font-black focus:ring-2 focus:ring-blue-500/20 outline-none transition-all">
-                    </div>
-                </div>
-
-                <div class="flex items-center gap-3 py-2">
-                    <input type="checkbox" id="remember" checked class="w-4 h-4 rounded-md border-gray-300 text-blue-600 focus:ring-0 cursor-pointer">
-                    <label for="remember" class="text-[10px] font-bold text-gray-400 uppercase tracking-widest cursor-pointer select-none">Remember Config</label>
-                </div>
-                
-                <button id="connectBtn" onclick="connect()" 
-                    class="w-full bg-gray-900 text-white font-bold py-5 rounded-2xl hover:bg-blue-600 shadow-lg shadow-gray-200 hover:shadow-blue-500/30 transition-all active:scale-[0.98] text-[11px] uppercase tracking-widest">
-                    Connect to Server
-                </button>
-
-                <p class="pt-6 text-[12px] text-gray-300 text-center font-bold">
-                    Have anny issues? Join our <a href="#" target="_blank" class="text-blue-600 hover:underline">xtc support.</a>
-                </p>
-            </div>
-        </div>
+    <div class="mb-7">
+      <h1 class="text-2xl font-bold text-slate-900 mb-1">Connect to server</h1>
+      <p class="text-sm text-slate-400">Enter your server details to continue</p>
     </div>
-
-    <script>
-        const pinBoxes = document.querySelectorAll('.pin-box');
-
-        pinBoxes.forEach((box, index) => {
-            box.addEventListener('input', () => {
-                if (box.value.length === 1 && index < pinBoxes.length - 1) {
-                    pinBoxes[index + 1].focus();
-                }
-            });
-            box.addEventListener('keydown', (e) => {
-                if (e.key === 'Backspace' && box.value.length === 0 && index > 0) {
-                    pinBoxes[index - 1].focus();
-                }
-            });
-        });
-
-        window.onload = () => {
-            const savedIp = localStorage.getItem('xtc_remember_ip');
-            const savedPort = localStorage.getItem('xtc_remember_port');
-            if (savedIp) document.getElementById('ip').value = savedIp;
-            if (savedPort) document.getElementById('port').value = savedPort;
-            document.getElementById('user').focus();
-        };
-
-        function notify(message, icon = "⚠️") {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').innerText = message;
-            document.getElementById('toast-icon').innerText = icon;
-            toast.classList.remove('hidden');
-            toast.classList.add('toast-active');
-            setTimeout(() => {
-                toast.classList.add('hidden');
-                toast.classList.remove('toast-active');
-            }, 3000);
-        }
-
-        async function connect() {
-            const btn = document.getElementById('connectBtn');
-            const ip = document.getElementById('ip').value.trim();
-            const port = document.getElementById('port').value.trim() || '8080';
-            const user = document.getElementById('user').value.trim();
-            let pin = "";
-            pinBoxes.forEach(box => pin += box.value);
-            const remember = document.getElementById('remember').checked;
-
-            if (!ip || !user || pin.length < 5) {
-                notify(pin.length < 5 ? "Complete 5-Digit PIN" : "Missing Credentials");
-                return;
-            }
-
-            btn.innerText = "VERIFYING IDENTITY...";
-            btn.disabled = true;
-
-            try {
-                const res = await fetch(`http://${ip}:${port}/login`, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user, pin })
-                });
-                const result = await res.json();
-
-                if (res.ok) {
-                    if (remember) {
-                        localStorage.setItem('xtc_remember_ip', ip);
-                        localStorage.setItem('xtc_remember_port', port);
-                    }
-                    localStorage.setItem('xtc_session', JSON.stringify({ ip, port, user, pin, room: "", password: "" }));
-                    document.body.style.opacity = '0';
-                    setTimeout(() => window.location.href = '/chat', 300);
-                } else {
-                    notify(result.message || "Auth Failed", "❌");
-                    btn.innerText = "CONNECT TO GATEWAY";
-                    btn.disabled = false;
-                }
-            } catch (err) {
-                notify("Gateway Offline", "📡");
-                btn.innerText = "CONNECT TO GATEWAY";
-                btn.disabled = false;
-            }
-        }
-
-        document.addEventListener('keypress', (e) => { if (e.key === 'Enter') connect(); });
-    </script>
+    <div id="httpWarn" style="display:none" class="mb-5 p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex gap-2">
+      <span>⚠️</span><div><strong>HTTP connection</strong> — data is not encrypted. Consider HTTPS for production.</div>
+    </div>
+    <div class="space-y-4">
+      <div class="flex gap-3">
+        <div class="flex-[2]"><label class="lbl">Server IP</label><input id="ip" class="inp" placeholder="103.45.67.89" oninput="checkHttp()"></div>
+        <div class="flex-1"><label class="lbl">Port</label><input id="port" class="inp text-center" placeholder="8080"></div>
+      </div>
+      <div><label class="lbl">Username</label><input id="user" class="inp" style="text-transform:uppercase" placeholder="USERNAME" autocomplete="off" maxlength="16"></div>
+      <div>
+        <label class="lbl">Security PIN (5 digits)</label>
+        <div class="flex gap-2" id="pins">
+          <input type="password" maxlength="1" class="pin-box">
+          <input type="password" maxlength="1" class="pin-box">
+          <input type="password" maxlength="1" class="pin-box">
+          <input type="password" maxlength="1" class="pin-box">
+          <input type="password" maxlength="1" class="pin-box">
+        </div>
+      </div>
+      <label class="flex items-center gap-3 cursor-pointer select-none">
+        <input type="checkbox" id="remember" checked class="w-4 h-4 rounded text-blue-600 cursor-pointer">
+        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest mono">Remember server</span>
+      </label>
+      <button id="connectBtn" onclick="connect()" class="btn-main">Connect to Server</button>
+      <p class="text-center text-xs text-slate-300">Docs at <a href="https://xtermchat.vercel.app" target="_blank" class="text-blue-400 hover:underline">xtermchat.vercel.app</a></p>
+    </div>
+  </div>
+</div>
+<script>
+const pinBoxes=document.querySelectorAll('.pin-box');
+pinBoxes.forEach((b,i)=>{
+  b.addEventListener('input',()=>{
+    b.classList.toggle('ok',b.value.length>0);
+    if(b.value.length===1&&i<pinBoxes.length-1)pinBoxes[i+1].focus();
+  });
+  b.addEventListener('keydown',e=>{
+    if(e.key==='Backspace'&&!b.value&&i>0){pinBoxes[i-1].focus();pinBoxes[i-1].classList.remove('ok');}
+  });
+});
+window.onload=()=>{
+  const ip=localStorage.getItem('xtc_ip')||'';
+  const port=localStorage.getItem('xtc_port')||'';
+  if(ip)document.getElementById('ip').value=ip;
+  if(port)document.getElementById('port').value=port;
+  if(ip)checkHttp();
+  document.getElementById('user').focus();
+};
+function checkHttp(){
+  const ip=document.getElementById('ip').value.trim();
+  const warn=document.getElementById('httpWarn');
+  warn.style.display=(ip&&ip!=='localhost'&&ip!=='127.0.0.1')?'flex':'none';
+}
+function showToast(msg,ok){
+  let el=document.getElementById('_t');
+  if(!el){el=document.createElement('div');el.id='_t';Object.assign(el.style,{position:'fixed',bottom:'24px',right:'24px',zIndex:'9999',padding:'12px 18px',borderRadius:'12px',fontSize:'13px',fontWeight:'600',color:'#fff',transition:'all .3s',boxShadow:'0 8px 24px rgba(0,0,0,.15)'});document.body.appendChild(el);}
+  el.style.background=ok?'#15803d':'#b91c1c';
+  el.textContent=(ok?'✅ ':'❌ ')+msg;
+  el.style.transform='translateY(0)';el.style.opacity='1';
+  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(16px)';},2800);
+}
+async function connect(){
+  const btn=document.getElementById('connectBtn');
+  const ip=document.getElementById('ip').value.trim();
+  const port=document.getElementById('port').value.trim()||'8080';
+  const user=document.getElementById('user').value.trim().toUpperCase();
+  let pin='';pinBoxes.forEach(b=>pin+=b.value);
+  if(!ip)return showToast('Server IP is required',false);
+  if(!user)return showToast('Username is required',false);
+  if(pin.length<5)return showToast('Complete the 5-digit PIN',false);
+  btn.textContent='CONNECTING...';btn.disabled=true;
+  try{
+    const res=await fetch(`http://${ip}:${port}/login`,{method:'POST',mode:'cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({user:user.toLowerCase(),pin})});
+    const data=await res.json();
+    if(res.ok){
+      if(document.getElementById('remember').checked){localStorage.setItem('xtc_ip',ip);localStorage.setItem('xtc_port',port);}
+      localStorage.setItem('xtc_session',JSON.stringify({ip,port,user,pin}));
+      document.body.style.opacity='0';document.body.style.transition='opacity .3s';
+      setTimeout(()=>window.location.href='/dashboard',280);
+    }else{showToast(data.message||'Auth failed',false);btn.textContent='Connect to Server';btn.disabled=false;}
+  }catch{showToast('Cannot reach server',false);btn.textContent='Connect to Server';btn.disabled=false;}
+}
+document.addEventListener('keydown',e=>{if(e.key==='Enter')connect();});
+</script>
 </body>
 </html>
