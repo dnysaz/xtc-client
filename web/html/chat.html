@@ -127,11 +127,11 @@
 
   /* ── Message input ── */
   #msgInput {
-    flex: 1;
+    width: 100%;
     background: #f8fafc;
     border: 1.5px solid #e2e8f0;
     border-radius: 14px;
-    padding: 10px 15px;
+    padding: 10px 48px 10px 15px;  /* kanan 48px biar tidak ketutup button */
     font-size: 14px;
     outline: none;
     resize: none;
@@ -139,6 +139,7 @@
     font-family: 'DM Sans', sans-serif;
     max-height: 120px;
     line-height: 1.5;
+    display: block;  /* hapus flex:1 */
   }
   #msgInput:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px #2563eb18; }
 
@@ -252,12 +253,12 @@
 
       <!-- Input area -->
       <div id="inputArea" style="display:none" class="shrink-0 border-t border-slate-200 bg-white px-4 py-3">
-        <div class="flex items-end gap-2.5 max-w-3xl mx-auto">
+        <div class="relative max-w-3xl mx-auto">
           <textarea id="msgInput" rows="2" placeholder="Type a message..."
             onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
           <button onclick="sendMsg()"
-            class="w-10 h-10 shrink-0 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-full flex items-center justify-center transition-all shadow-sm shadow-blue-200">
-            <svg class="w-4 h-4 rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="absolute right-2 bottom-2 w-10 h-10 mt-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-full flex items-center justify-center transition-all shrink-0">
+            <svg class="w-5 h-5 rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
             </svg>
           </button>
