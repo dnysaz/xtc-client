@@ -11,150 +11,65 @@
   *{box-sizing:border-box}
   body{font-family:'DM Sans',sans-serif;height:100vh;overflow:hidden;background:#f8fafc}
   .mono{font-family:'JetBrains Mono',monospace}
-
-  /* ── Scrollbar ── */
   ::-webkit-scrollbar{width:4px}
   ::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:4px}
-
-  /* ── Sidebar ── */
   #sidebar{transform:translateX(-100%)}
   @media(min-width:1024px){#sidebar{transform:translateX(0)}}
 
   /* ── Bubbles ── */
-  .bubble {
-    display: inline-block;
-    max-width: 100%;
-    word-break: break-word;
-    font-size: 14px;
-    line-height: 1.6;
-    padding: 10px 14px;
-  }
-  .bubble-me {
-    background: #2563eb;
-    color: #fff;
-    border-radius: 18px 18px 4px 18px;
-  }
-  .bubble-them {
-    background: #fff;
-    color: #1e293b;
-    border-radius: 18px 18px 18px 4px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 1px 3px rgba(0,0,0,.05);
-  }
-  .bubble-bot {
-    background: #f0fdf4;
-    color: #14532d;
-    border-radius: 18px 18px 18px 4px;
-    border: 1px solid #bbf7d0;
-    white-space: pre-wrap;
-  }
+  .bubble{display:inline-block;max-width:100%;word-break:break-word;font-size:14px;line-height:1.6;padding:10px 14px}
+  .bubble-me{background:#2563eb;color:#fff;border-radius:18px 18px 4px 18px}
+  .bubble-them{background:#fff;color:#1e293b;border-radius:18px 18px 18px 4px;border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  .bubble-bot{background:#f0fdf4;color:#14532d;border-radius:18px 18px 18px 4px;border:1px solid #bbf7d0;white-space:pre-wrap}
+  .bubble-me   a.lnk{color:#bfdbfe;text-decoration:underline}
+  .bubble-them a.lnk{color:#2563eb;text-decoration:underline}
+  .bubble-bot  a.lnk{color:#16a34a;text-decoration:underline}
 
-  /* ── Links inside bubbles ── */
-  .bubble-me   a.lnk { color: #bfdbfe; text-decoration: underline; }
-  .bubble-them a.lnk { color: #2563eb; text-decoration: underline; }
-  .bubble-bot  a.lnk { color: #16a34a; text-decoration: underline; }
+  /* ── Link preview ── */
+  .link-preview{margin-top:8px;border-radius:12px;overflow:hidden;border:1px solid rgba(0,0,0,.08);background:#fff;max-width:320px;text-decoration:none;display:block;transition:box-shadow .2s;cursor:pointer}
+  .link-preview:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+  .bubble-me .link-preview{border-color:rgba(255,255,255,.2);background:rgba(255,255,255,.12)}
+  .bubble-me .link-preview .preview-text{color:rgba(255,255,255,.9)}
+  .bubble-me .link-preview .preview-desc{color:rgba(255,255,255,.65)}
+  .bubble-me .link-preview .preview-domain{color:rgba(255,255,255,.5)}
+  .preview-img{width:100%;height:140px;object-fit:cover;display:block}
+  .preview-body{padding:10px 12px}
+  .preview-text{font-size:13px;font-weight:600;color:#0f172a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .preview-desc{font-size:11.5px;color:#64748b;margin-top:3px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .preview-domain{font-size:10px;color:#94a3b8;margin-top:5px;font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:5px}
+  .preview-favicon{width:12px;height:12px;border-radius:2px}
+  .preview-skeleton{background:linear-gradient(90deg,#f1f5f9 25%,#e2e8f0 50%,#f1f5f9 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}
+  @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
-  /* ── Link preview card ── */
-  .link-preview {
-    margin-top: 8px;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid rgba(0,0,0,.08);
-    background: #fff;
-    max-width: 320px;
-    text-decoration: none;
-    display: block;
-    transition: box-shadow .2s;
-    cursor: pointer;
-  }
-  .link-preview:hover { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
-  .bubble-me .link-preview {
-    border-color: rgba(255,255,255,.2);
-    background: rgba(255,255,255,.12);
-  }
-  .bubble-me .link-preview .preview-text { color: rgba(255,255,255,.9); }
-  .bubble-me .link-preview .preview-desc { color: rgba(255,255,255,.65); }
-  .bubble-me .link-preview .preview-domain { color: rgba(255,255,255,.5); }
+  /* ── Input ── */
+  #msgInput{width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:10px 48px 10px 15px;font-size:14px;outline:none;resize:none;transition:all .2s;font-family:'DM Sans',sans-serif;max-height:120px;line-height:1.5;display:block}
+  #msgInput:focus{border-color:#2563eb;background:#fff;box-shadow:0 0 0 3px #2563eb18}
 
-  .preview-img {
-    width: 100%;
-    height: 140px;
-    object-fit: cover;
-    display: block;
-  }
-  .preview-body { padding: 10px 12px; }
-  .preview-text {
-    font-size: 13px;
-    font-weight: 600;
-    color: #0f172a;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .preview-desc {
-    font-size: 11.5px;
-    color: #64748b;
-    margin-top: 3px;
-    line-height: 1.45;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-  .preview-domain {
-    font-size: 10px;
-    color: #94a3b8;
-    margin-top: 5px;
-    font-family: 'JetBrains Mono', monospace;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .preview-favicon {
-    width: 12px;
-    height: 12px;
-    border-radius: 2px;
-  }
-  .preview-skeleton {
-    background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s infinite;
-    border-radius: 8px;
-  }
-  @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
-
-  /* ── Message input ── */
-  #msgInput {
-    width: 100%;
-    background: #f8fafc;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 10px 48px 10px 15px;  /* kanan 48px biar tidak ketutup button */
-    font-size: 14px;
-    outline: none;
-    resize: none;
-    transition: all .2s;
-    font-family: 'DM Sans', sans-serif;
-    max-height: 120px;
-    line-height: 1.5;
-    display: block;  /* hapus flex:1 */
-  }
-  #msgInput:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 3px #2563eb18; }
+  /* ── Command hint ── */
+  .cmd-hint{position:absolute;bottom:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:6px;box-shadow:0 4px 16px rgba(0,0,0,.08);z-index:10}
+  .cmd-hint-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:7px;cursor:pointer;transition:background .1s}
+  .cmd-hint-item:hover{background:#eff6ff}
+  .cmd-hint-item .cmd{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#2563eb;min-width:70px}
+  .cmd-hint-item .desc{font-size:12px;color:#64748b}
 
   /* ── Room list ── */
-  .room-item { cursor: pointer; transition: all .15s; border: 1px solid transparent; border-radius: 12px; }
-  .room-item:hover  { background: #f1f5f9; }
-  .room-item.active { background: #eff6ff; border-color: #bfdbfe; }
+  .room-item{cursor:pointer;transition:all .15s;border:1px solid transparent;border-radius:12px}
+  .room-item:hover{background:#f1f5f9}
+  .room-item.active{background:#eff6ff;border-color:#bfdbfe}
 
-  /* ── Modal ── */
-  .modal-bg { position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px); }
-  .modal    { background:#fff;border-radius:18px;padding:24px;width:100%;max-width:340px; }
+  /* ── Modals ── */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px)}
+  .modal{background:#fff;border-radius:18px;padding:24px;width:100%;max-width:340px}
+
+  /* ── Emoji grid ── */
+  .emoji-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-top:10px}
+  .emoji-btn{padding:8px;border-radius:8px;text-align:center;cursor:pointer;transition:background .1s;border:none;background:none;font-size:18px}
+  .emoji-btn:hover{background:#eff6ff}
+  .emoji-label{font-size:9px;color:#94a3b8;font-family:'JetBrains Mono',monospace;display:block;margin-top:2px}
 
   /* ── Message animation ── */
-  .msg-new { animation: fadeUp .22s ease; }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .msg-new{animation:fadeUp .22s ease}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
   /* ── Avatar colors ── */
   .av-0{background:#3b82f6}.av-1{background:#8b5cf6}.av-2{background:#ec4899}
@@ -164,7 +79,7 @@
 </head>
 <body>
 
-<!-- Password Modal -->
+<!-- ── Password Modal ── -->
 <div id="passModal" class="modal-bg" style="display:none">
   <div class="modal">
     <div class="text-2xl mb-3">🔒</div>
@@ -177,6 +92,101 @@
       <button onclick="closePass()" class="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">Cancel</button>
       <button onclick="submitPass()" class="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold">Join</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Purge Confirm Modal ── -->
+<div id="purgeModal" class="modal-bg" style="display:none">
+  <div class="modal text-center">
+    <div class="text-3xl mb-3">🗑️</div>
+    <h3 class="text-base font-bold text-slate-900 mb-2">Purge all messages?</h3>
+    <p class="text-sm text-slate-500 mb-1">Room: <span id="purgeRoomName" class="font-bold text-slate-800 mono"></span></p>
+    <p class="text-xs text-slate-400 mb-5">All messages will be permanently deleted from the server. This cannot be undone.</p>
+    <div class="flex gap-3">
+      <button onclick="closePurge()" class="flex-1 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold">Cancel</button>
+      <button onclick="confirmPurge()" class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold">Purge</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Help Modal ── -->
+<div id="helpModal" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:400px">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-base font-bold text-slate-900">⌨️ Commands & Shortcuts</h3>
+      <button onclick="closeHelp()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+    </div>
+    <div class="space-y-1 text-sm">
+      <div class="text-[10px] font-bold uppercase tracking-widest text-slate-300 mono px-1 pt-1 pb-1">Commands</div>
+      <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+        <span class="mono font-bold text-blue-600 w-20 shrink-0">:clear</span>
+        <span class="text-slate-500">Clear chat display (local only)</span>
+      </div>
+      <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+        <span class="mono font-bold text-red-500 w-20 shrink-0">:purge</span>
+        <span class="text-slate-500">Delete all messages from server</span>
+      </div>
+      <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+        <span class="mono font-bold text-blue-600 w-20 shrink-0">:e</span>
+        <span class="text-slate-500">Open emoji shortcuts panel</span>
+      </div>
+      <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+        <span class="mono font-bold text-blue-600 w-20 shrink-0">:help</span>
+        <span class="text-slate-500">Show this help panel</span>
+      </div>
+      <div class="text-[10px] font-bold uppercase tracking-widest text-slate-300 mono px-1 pt-3 pb-1">Keyboard</div>
+      <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+        <span class="mono font-bold text-slate-600 w-20 shrink-0">Enter</span>
+        <span class="text-slate-500">Send message</span>
+      </div>
+      <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+        <span class="mono font-bold text-slate-600 w-20 shrink-0 text-xs">Shift+Enter</span>
+        <span class="text-slate-500">New line</span>
+      </div>
+      <div class="flex gap-3 px-2 py-1.5 rounded-lg hover:bg-slate-50">
+        <span class="mono font-bold text-slate-600 w-20 shrink-0">Esc</span>
+        <span class="text-slate-500">Close any modal</span>
+      </div>
+    </div>
+    <button onclick="closeHelp()" class="mt-5 w-full py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">Close</button>
+  </div>
+</div>
+
+<!-- ── Emoji Modal ── -->
+<div id="emojiModal" class="modal-bg" style="display:none">
+  <div class="modal" style="max-width:380px">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="text-base font-bold text-slate-900">😊 Emoji Shortcuts</h3>
+      <button onclick="closeEmoji()" class="text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+    </div>
+    <p class="text-xs text-slate-400 mb-3">Click to insert into message</p>
+    <div class="emoji-grid">
+      <button class="emoji-btn" onclick="insertEmoji('🔥',':fire')">🔥<span class="emoji-label">:fire</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('🚀',':rocket')">🚀<span class="emoji-label">:rocket</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('✅',':check')">✅<span class="emoji-label">:check</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('⚠️',':warn')">⚠️<span class="emoji-label">:warn</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('👍',':nice')">👍<span class="emoji-label">:nice</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('❤️',':heart')">❤️<span class="emoji-label">:heart</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('😂',':laugh')">😂<span class="emoji-label">:laugh</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('😎',':cool')">😎<span class="emoji-label">:cool</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('😊',':smile')">😊<span class="emoji-label">:smile</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('🙏',':pray')">🙏<span class="emoji-label">:pray</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('💪',':muscle')">💪<span class="emoji-label">:muscle</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('🤖',':robot')">🤖<span class="emoji-label">:robot</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('🪲',':bug')">🪲<span class="emoji-label">:bug</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('☕',':coffee')">☕<span class="emoji-label">:coffee</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('⭐',':star')">⭐<span class="emoji-label">:star</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('🎉',':party')">🎉<span class="emoji-label">:party</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('👻',':ghost')">👻<span class="emoji-label">:ghost</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('💯',':100')">💯<span class="emoji-label">:100</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('⚡',':zap')">⚡<span class="emoji-label">:zap</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('🔒',':lock')">🔒<span class="emoji-label">:lock</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('🔑',':key')">🔑<span class="emoji-label">:key</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('📦',':box')">📦<span class="emoji-label">:box</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('☁️',':cloud')">☁️<span class="emoji-label">:cloud</span></button>
+      <button class="emoji-btn" onclick="insertEmoji('💀',':skull')">💀<span class="emoji-label">:skull</span></button>
+    </div>
+    <button onclick="closeEmoji()" class="mt-4 w-full py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-semibold hover:bg-slate-200 transition-colors">Close</button>
   </div>
 </div>
 
@@ -209,25 +219,17 @@
 
 <!-- ═══ CHAT LAYOUT ═══ -->
 <div class="lg:pl-60 h-screen flex flex-col">
-
-  <!-- Topbar -->
   <header class="shrink-0 bg-white border-b border-slate-100 px-4 h-14 flex items-center gap-3 z-20">
     <button onclick="openSidebar()" class="lg:hidden text-slate-400 hover:text-slate-700 p-1">
-      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-      </svg>
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
     </button>
     <div id="roomHeader" class="flex-1">
       <span class="text-sm font-semibold text-slate-400">Select a room to start chatting</span>
     </div>
-    <button onclick="toggleRoomPanel()" class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors mono">
-      ⊞ Rooms
-    </button>
+    <button onclick="toggleRoomPanel()" class="text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors mono">⊞ Rooms</button>
   </header>
 
-  <!-- Body -->
   <div class="flex flex-1 overflow-hidden">
-
     <!-- Room list -->
     <div id="roomPanel" class="w-52 bg-white border-r border-slate-100 flex flex-col overflow-hidden shrink-0">
       <div class="px-4 py-3 border-b border-slate-100">
@@ -240,8 +242,6 @@
 
     <!-- Chat area -->
     <div class="flex-1 flex flex-col overflow-hidden bg-slate-50">
-
-      <!-- Messages -->
       <div id="messages" class="flex-1 overflow-y-auto px-4 md:px-6 py-5">
         <div class="flex items-center justify-center h-full">
           <div class="text-center text-slate-300">
@@ -251,18 +251,22 @@
         </div>
       </div>
 
-      <!-- Input area -->
+      <!-- Input -->
       <div id="inputArea" style="display:none" class="shrink-0 border-t border-slate-200 bg-white px-4 py-3">
         <div class="relative max-w-3xl mx-auto">
-          <textarea id="msgInput" rows="2" placeholder="Type a message..."
-            onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+          <!-- Command hint dropdown -->
+          <div id="cmdHint" class="cmd-hint" style="display:none"></div>
+
+          <textarea id="msgInput" rows="1" placeholder="Type a message or :help for commands..."
+            onkeydown="handleKey(event)" oninput="handleInput(this)"></textarea>
           <button onclick="sendMsg()"
-            class="absolute right-2 bottom-2 w-10 h-10 mt-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-full flex items-center justify-center transition-all shrink-0">
-            <svg class="w-5 h-5 rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="absolute right-2 bottom-2 w-8 h-8 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-full flex items-center justify-center transition-all">
+            <svg class="w-3.5 h-3.5 rotate-45" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
             </svg>
           </button>
         </div>
+        <div class="text-center text-[10px] text-slate-300 mt-1.5 mono">Enter to send · Shift+Enter new line · :help for commands</div>
       </div>
     </div>
   </div>
@@ -275,10 +279,27 @@ let currentPass  = '';
 let lastCount    = 0;
 let pollInterval = null;
 let pendingRoom  = null;
+const ogCache    = {};
 
-// OG cache: url → { title, desc, image, domain, favicon }
-const ogCache = {};
+// ── Emoji map (for auto-convert on send) ─────────────────────────────────────
+const EMOJI_MAP = {
+  ':fire':'🔥',':rocket':'🚀',':check':'✅',':warn':'⚠️',':nice':'👍',
+  ':heart':'❤️',':laugh':'😂',':cool':'😎',':smile':'😊',':pray':'🙏',
+  ':muscle':'💪',':robot':'🤖',':bug':'🪲',':coffee':'☕',':star':'⭐',
+  ':party':'🎉',':ghost':'👻',':100':'💯',':zap':'⚡',':lock':'🔒',
+  ':key':'🔑',':box':'📦',':cloud':'☁️',':skull':'💀',':beer':'🍺',
+  ':globe':'🌐',':top':'🔝',
+};
 
+// ── COMMANDS ──────────────────────────────────────────────────────────────────
+const COMMANDS = [
+  { cmd: ':clear', desc: 'Clear chat display' },
+  { cmd: ':purge', desc: 'Delete all messages from server' },
+  { cmd: ':e',     desc: 'Open emoji panel' },
+  { cmd: ':help',  desc: 'Show help & shortcuts' },
+];
+
+// ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
   const s = requireSession();
   if (!s) return;
@@ -292,12 +313,10 @@ async function loadRoomList() {
   const rooms    = data?.rooms || [];
   const el       = document.getElementById('roomItems');
   if (!el) return;
-
   if (!rooms.length) {
     el.innerHTML = '<div class="text-xs text-slate-400 text-center py-8 px-3">No rooms.<br>Create one first.</div>';
     return;
   }
-
   el.innerHTML = rooms.map(r => `
     <div onclick="joinRoom('${r.name}', ${r.has_password})"
       class="room-item flex items-center gap-2.5 px-3 py-2.5 mb-0.5 ${currentRoom === r.name ? 'active' : ''}">
@@ -311,7 +330,6 @@ async function loadRoomList() {
 
 // ── Join room ─────────────────────────────────────────────────────────────────
 async function joinRoom(name, hasPassword, knownPass) {
-  // Private room — show password modal (unless we already have the pass)
   if (hasPassword && !knownPass && name !== currentRoom) {
     pendingRoom = name;
     document.getElementById('passInput').value = '';
@@ -319,34 +337,21 @@ async function joinRoom(name, hasPassword, knownPass) {
     setTimeout(() => document.getElementById('passInput').focus(), 100);
     return;
   }
-
   currentRoom = name;
   if (!hasPassword && !knownPass) currentPass = '';
   if (knownPass) currentPass = knownPass;
-  lastCount   = 0;
-
+  lastCount = 0;
   history.replaceState({}, '', `/chat?room=${encodeURIComponent(name)}`);
-
-  // Update topbar
   document.getElementById('roomHeader').innerHTML = `
     <div class="flex items-center gap-2">
       <span class="w-6 h-6 rounded-md bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold mono">#</span>
       <span class="text-sm font-bold text-slate-800">${name}</span>
     </div>`;
-
   document.getElementById('inputArea').style.display = 'block';
-
-  // Highlight active room
   document.querySelectorAll('.room-item').forEach(el => {
-    const active = el.textContent.includes(`@${name}`);
-    el.classList.toggle('active', active);
+    el.classList.toggle('active', el.textContent.includes(`@${name}`));
   });
-
-  // Hide room panel on mobile
-  if (window.innerWidth < 768) {
-    document.getElementById('roomPanel').classList.add('hidden');
-  }
-
+  if (window.innerWidth < 768) document.getElementById('roomPanel').classList.add('hidden');
   if (pollInterval) clearInterval(pollInterval);
   await fetchMessages();
   pollInterval = setInterval(fetchMessages, 2000);
@@ -359,17 +364,141 @@ async function submitPass() {
   if (ok) {
     currentPass = pass;
     document.getElementById('passModal').style.display = 'none';
-    joinRoom(pendingRoom, true, pass);  // pass knownPass so it won't be cleared
+    joinRoom(pendingRoom, true, pass);
   } else {
     const inp = document.getElementById('passInput');
     inp.style.borderColor = '#f87171';
-    inp.style.animation   = 'shake .3s';
-    setTimeout(() => { inp.style.borderColor = ''; inp.style.animation = ''; }, 800);
+    setTimeout(() => { inp.style.borderColor = ''; }, 800);
   }
 }
 function closePass() {
   pendingRoom = null;
   document.getElementById('passModal').style.display = 'none';
+}
+
+// ── Purge modal ───────────────────────────────────────────────────────────────
+function openPurge() {
+  document.getElementById('purgeRoomName').textContent = `@${currentRoom}`;
+  document.getElementById('purgeModal').style.display = 'flex';
+}
+function closePurge() {
+  document.getElementById('purgeModal').style.display = 'none';
+}
+async function confirmPurge() {
+  const s = requireSession();
+  closePurge();
+  const { ok, data } = await POST('/purge-chat', { room: currentRoom, user: s.user.toLowerCase(), pin: s.pin });
+  if (ok) {
+    toast('Messages purged', 'success');
+    lastCount = 0;
+    await fetchMessages();
+  } else {
+    toast(data?.message || 'Purge failed — only room creator can purge', 'error');
+  }
+}
+
+// ── Help modal ────────────────────────────────────────────────────────────────
+function openHelp()  { document.getElementById('helpModal').style.display = 'flex'; }
+function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+
+// ── Emoji modal ───────────────────────────────────────────────────────────────
+function openEmoji()  { document.getElementById('emojiModal').style.display = 'flex'; }
+function closeEmoji() { document.getElementById('emojiModal').style.display = 'none'; }
+function insertEmoji(emoji, shortcut) {
+  const inp = document.getElementById('msgInput');
+  const pos = inp.selectionStart;
+  const val = inp.value;
+  inp.value = val.slice(0, pos) + emoji + val.slice(pos);
+  inp.focus();
+  inp.setSelectionRange(pos + emoji.length, pos + emoji.length);
+  closeEmoji();
+  autoResize(inp);
+}
+
+// ── Command hint dropdown ─────────────────────────────────────────────────────
+function showCmdHint(filter) {
+  const hint = document.getElementById('cmdHint');
+  const matches = COMMANDS.filter(c => c.cmd.startsWith(filter));
+  if (!matches.length || filter === matches[0].cmd) {
+    hint.style.display = 'none';
+    return;
+  }
+  hint.innerHTML = matches.map(c => `
+    <div class="cmd-hint-item" onclick="selectCmd('${c.cmd}')">
+      <span class="cmd">${c.cmd}</span>
+      <span class="desc">${c.desc}</span>
+    </div>`).join('');
+  hint.style.display = 'block';
+}
+function hideCmdHint() {
+  document.getElementById('cmdHint').style.display = 'none';
+}
+function selectCmd(cmd) {
+  const inp = document.getElementById('msgInput');
+  inp.value = cmd + ' ';
+  inp.focus();
+  hideCmdHint();
+}
+
+// ── Input handler ─────────────────────────────────────────────────────────────
+function handleInput(el) {
+  autoResize(el);
+  const val = el.value;
+  if (val.startsWith(':') && !val.includes(' ')) {
+    showCmdHint(val);
+  } else {
+    hideCmdHint();
+  }
+}
+
+// ── Key handler ───────────────────────────────────────────────────────────────
+function handleKey(e) {
+  // Close hint on Escape
+  if (e.key === 'Escape') {
+    hideCmdHint();
+    closeHelp(); closeEmoji(); closePurge();
+    return;
+  }
+  // Send on Enter (not Shift+Enter)
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    const val = document.getElementById('msgInput').value.trim();
+
+    // Process commands
+    if (val === ':clear') {
+      document.getElementById('messages').innerHTML = `
+        <div class="flex items-center justify-center h-full">
+          <div class="text-center text-slate-300">
+            <div class="text-2xl mb-2">✨</div>
+            <div class="text-sm">Chat cleared locally</div>
+          </div>
+        </div>`;
+      document.getElementById('msgInput').value = '';
+      hideCmdHint();
+      return;
+    }
+    if (val === ':purge') {
+      document.getElementById('msgInput').value = '';
+      hideCmdHint();
+      if (!currentRoom) return toast('Join a room first', 'warn');
+      openPurge();
+      return;
+    }
+    if (val === ':e' || val === ':emoji') {
+      document.getElementById('msgInput').value = '';
+      hideCmdHint();
+      openEmoji();
+      return;
+    }
+    if (val === ':help') {
+      document.getElementById('msgInput').value = '';
+      hideCmdHint();
+      openHelp();
+      return;
+    }
+
+    sendMsg();
+  }
 }
 
 // ── Fetch & render messages ───────────────────────────────────────────────────
@@ -381,40 +510,25 @@ async function fetchMessages() {
     const { ok, data } = await GET(path);
     if (!ok || !Array.isArray(data)) return;
     if (data.length === lastCount) return;
-
-    const el       = document.getElementById('messages');
-    const atBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 100;
+    const el        = document.getElementById('messages');
+    const atBottom  = el.scrollHeight - el.scrollTop <= el.clientHeight + 100;
     const prevCount = lastCount;
-
     if (data.length === 0) {
-      el.innerHTML = `
-        <div class="flex items-center justify-center h-full">
-          <div class="text-center text-slate-300">
-            <div class="text-3xl mb-2">◎</div>
-            <div class="text-sm">No messages yet. Say hello!</div>
-          </div>
-        </div>`;
+      el.innerHTML = `<div class="flex items-center justify-center h-full"><div class="text-center text-slate-300"><div class="text-3xl mb-2">◎</div><div class="text-sm">No messages yet. Say hello!</div></div></div>`;
       lastCount = 0;
       return;
     }
-
-    // Group consecutive messages from same sender
-    const groups = groupMessages(data);
+    const groups  = groupMessages(data);
     el.innerHTML  = groups.map((g, gi) => renderGroup(g, s.user, gi, prevCount, data)).join('');
-    lastCount = data.length;
-
+    lastCount     = data.length;
     if (atBottom) el.scrollTop = el.scrollHeight;
-
-    // Fetch OG data for any new URLs
     el.querySelectorAll('[data-og-url]').forEach(placeholder => {
-      const url = placeholder.getAttribute('data-og-url');
-      fetchOG(url, placeholder);
+      fetchOG(placeholder.getAttribute('data-og-url'), placeholder);
     });
-
   } catch(e) {}
 }
 
-// ── Group messages by sender ──────────────────────────────────────────────────
+// ── Group + Render ────────────────────────────────────────────────────────────
 function groupMessages(msgs) {
   const groups = [];
   let cur = null;
@@ -429,52 +543,39 @@ function groupMessages(msgs) {
   return groups;
 }
 
-// ── Render a group of messages from same sender ───────────────────────────────
 function renderGroup(group, me, groupIdx, prevCount, allMsgs) {
   const isMe  = group.sender.toLowerCase() === me.toLowerCase();
   const isBot = /BOT|MONITOR|WATCHDOG|DEPLOY|BACKUP/i.test(group.sender);
   const isNew = group.firstIdx >= prevCount;
   const cls   = isNew ? 'msg-new' : '';
-
-  // Avatar color based on sender name hash
-  const avColor = 'av-' + (group.sender.charCodeAt(0) % 8);
+  const avColor  = 'av-' + (group.sender.charCodeAt(0) % 8);
   const initials = group.sender.slice(0, 2).toUpperCase();
 
   const bubbles = group.msgs.map((m, mi) => {
-    const ts   = (m.timestamp || '').slice(11, 16);
+    const ts      = (m.timestamp || '').slice(11, 16);
     const isFirst = mi === 0;
     const isLast  = mi === group.msgs.length - 1;
-
-    // Linkify content
-    const escaped = (m.content || '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-    // Detect URLs
+    const escaped = (m.content || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const urlRegex = /(https?:\/\/[^\s<>"]+)/g;
     const urls     = [...new Set(escaped.match(urlRegex) || [])];
     const linked   = escaped.replace(urlRegex, `<a href="$1" target="_blank" rel="noopener" class="lnk">$1</a>`);
 
-    // Bubble radius tweaks for grouped messages
     let radius = '';
     if (isMe) {
-      if (group.msgs.length === 1) radius = 'border-radius:18px 18px 4px 18px';
-      else if (isFirst)            radius = 'border-radius:18px 18px 8px 18px';
-      else if (isLast)             radius = 'border-radius:18px 18px 4px 18px';
-      else                         radius = 'border-radius:18px 18px 8px 18px';
+      radius = group.msgs.length === 1 ? 'border-radius:18px 18px 4px 18px'
+             : isFirst ? 'border-radius:18px 18px 8px 18px'
+             : isLast  ? 'border-radius:18px 18px 4px 18px'
+             : 'border-radius:18px 18px 8px 18px';
     } else {
-      if (group.msgs.length === 1) radius = 'border-radius:18px 18px 18px 4px';
-      else if (isFirst)            radius = 'border-radius:18px 18px 18px 8px';
-      else if (isLast)             radius = 'border-radius:18px 18px 18px 4px';
-      else                         radius = 'border-radius:18px 18px 18px 8px';
+      radius = group.msgs.length === 1 ? 'border-radius:18px 18px 18px 4px'
+             : isFirst ? 'border-radius:18px 18px 18px 8px'
+             : isLast  ? 'border-radius:18px 18px 18px 4px'
+             : 'border-radius:18px 18px 18px 8px';
     }
 
     const bubbleClass = isBot ? 'bubble bubble-bot' : (isMe ? 'bubble bubble-me' : 'bubble bubble-them');
-
-    // OG preview placeholders for each URL
     const previews = urls.map(url => `
-      <div data-og-url="${url.replace(/"/g, '&quot;')}" class="og-placeholder">
+      <div data-og-url="${url.replace(/"/g,'&quot;')}" class="og-placeholder">
         <div class="preview-skeleton" style="height:80px;margin-top:8px;border-radius:12px"></div>
       </div>`).join('');
 
@@ -488,132 +589,80 @@ function renderGroup(group, me, groupIdx, prevCount, allMsgs) {
       ${isLast ? `<div class="text-[10px] text-slate-400 mt-1 ${isMe ? 'text-right' : 'pl-9'} mono">${ts}</div>` : ''}`;
   }).join('');
 
-  if (isMe) {
-    return `<div class="mb-3 ${cls}">${bubbles}</div>`;
-  }
-
-  if (isBot) {
-    return `
-      <div class="mb-3 ${cls}">
-        <div class="flex items-center gap-2 mb-1.5 pl-1">
-          <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-sm shrink-0">🤖</div>
-          <span class="text-[11px] font-bold text-green-600 mono">${group.sender}</span>
-        </div>
-        ${bubbles}
-      </div>`;
-  }
-
+  if (isMe) return `<div class="mb-3 ${cls}">${bubbles}</div>`;
+  if (isBot) return `
+    <div class="mb-3 ${cls}">
+      <div class="flex items-center gap-2 mb-1.5 pl-1">
+        <div class="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center text-sm shrink-0">🤖</div>
+        <span class="text-[11px] font-bold text-green-600 mono">${group.sender}</span>
+      </div>
+      ${bubbles}
+    </div>`;
   return `
     <div class="mb-3 ${cls}">
       <div class="flex items-center gap-2 mb-1.5 pl-1">
-        <div class="w-6 h-6 rounded-full ${avColor} flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-          ${initials}
-        </div>
+        <div class="w-6 h-6 rounded-full ${avColor} flex items-center justify-center text-white text-[10px] font-bold shrink-0">${initials}</div>
         <span class="text-[11px] font-semibold text-slate-500 mono">${group.sender}</span>
       </div>
       ${bubbles}
     </div>`;
 }
 
-// ── OG preview fetcher ────────────────────────────────────────────────────────
+// ── OG Preview ────────────────────────────────────────────────────────────────
 async function fetchOG(url, placeholder) {
   if (!placeholder) return;
-
-  // Check cache
-  if (ogCache[url]) {
-    renderPreview(placeholder, url, ogCache[url]);
-    return;
-  }
-
-  // Use allorigins proxy to fetch OG tags (avoids CORS)
-  const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-
+  if (ogCache[url]) { renderPreview(placeholder, url, ogCache[url]); return; }
   try {
-    const res  = await fetch(proxyUrl, { signal: AbortSignal.timeout(6000) });
+    const res  = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, { signal: AbortSignal.timeout(6000) });
     const json = await res.json();
     const html = json?.contents || '';
-
-    // Parse OG tags from raw HTML
     const getOG = (prop) => {
-      const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`, 'i'))
-              || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`, 'i'));
-      return m ? m[1].replace(/&#(\d+);/g, (_, n) => String.fromCharCode(n)).trim() : '';
+      const m = html.match(new RegExp(`<meta[^>]+(?:property|name)=["']${prop}["'][^>]+content=["']([^"']+)["']`,'i'))
+              || html.match(new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${prop}["']`,'i'));
+      return m ? m[1].replace(/&#(\d+);/g,(_,n)=>String.fromCharCode(n)).trim() : '';
     };
-    const getTitle = () => {
-      const og = getOG('og:title');
-      if (og) return og;
-      const m = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-      return m ? m[1].trim() : '';
-    };
-
-    const domain  = new URL(url).hostname.replace(/^www\./, '');
-    const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-    const data    = {
-      title:   getTitle().slice(0, 80),
-      desc:    (getOG('og:description') || getOG('description')).slice(0, 140),
-      image:   getOG('og:image') || '',
-      domain,
-      favicon,
-    };
-
+    const getTitle = () => { const og=getOG('og:title'); if(og)return og; const m=html.match(/<title[^>]*>([^<]+)<\/title>/i); return m?m[1].trim():''; };
+    const domain  = new URL(url).hostname.replace(/^www\./,'');
+    const data    = { title:getTitle().slice(0,80), desc:(getOG('og:description')||getOG('description')).slice(0,140), image:getOG('og:image')||'', domain, favicon:`https://www.google.com/s2/favicons?domain=${domain}&sz=32` };
     ogCache[url] = data;
     renderPreview(placeholder, url, data);
   } catch(e) {
-    // On failure — show minimal domain card
     try {
-      const domain  = new URL(url).hostname.replace(/^www\./, '');
-      const favicon = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-      ogCache[url]  = { title: '', desc: '', image: '', domain, favicon };
+      const domain = new URL(url).hostname.replace(/^www\./,'');
+      ogCache[url] = { title:'', desc:'', image:'', domain, favicon:`https://www.google.com/s2/favicons?domain=${domain}&sz=32` };
       renderPreview(placeholder, url, ogCache[url]);
     } catch { placeholder.remove(); }
   }
 }
-
 function renderPreview(placeholder, url, d) {
-  // If no useful data and no image, show minimal link card
-  const hasContent = d.title || d.image;
-  if (!hasContent) {
-    placeholder.innerHTML = `
-      <a href="${url}" target="_blank" rel="noopener" class="link-preview" style="padding:10px 12px;display:flex;align-items:center;gap:8px;text-decoration:none">
-        <img src="${d.favicon}" class="preview-favicon" onerror="this.style.display='none'">
-        <span class="preview-domain" style="margin:0;font-size:12px;color:#475569;font-weight:600">${d.domain}</span>
-        <span style="color:#94a3b8;font-size:11px;margin-left:auto">↗</span>
-      </a>`;
+  if (!d.title && !d.image) {
+    placeholder.innerHTML = `<a href="${url}" target="_blank" rel="noopener" class="link-preview" style="padding:10px 12px;display:flex;align-items:center;gap:8px;text-decoration:none"><img src="${d.favicon}" class="preview-favicon" onerror="this.style.display='none'"><span class="preview-domain" style="margin:0;font-size:12px;color:#475569;font-weight:600">${d.domain}</span><span style="color:#94a3b8;font-size:11px;margin-left:auto">↗</span></a>`;
     return;
   }
-
-  placeholder.innerHTML = `
-    <a href="${url}" target="_blank" rel="noopener" class="link-preview" style="text-decoration:none">
-      ${d.image ? `<img src="${d.image}" class="preview-img" onerror="this.style.display='none'" loading="lazy">` : ''}
-      <div class="preview-body">
-        ${d.title ? `<div class="preview-text">${d.title}</div>` : ''}
-        ${d.desc  ? `<div class="preview-desc">${d.desc}</div>`  : ''}
-        <div class="preview-domain">
-          <img src="${d.favicon}" class="preview-favicon" onerror="this.style.display='none'">
-          ${d.domain}
-        </div>
-      </div>
-    </a>`;
+  placeholder.innerHTML = `<a href="${url}" target="_blank" rel="noopener" class="link-preview" style="text-decoration:none">${d.image?`<img src="${d.image}" class="preview-img" onerror="this.style.display='none'" loading="lazy">`:''}
+    <div class="preview-body">${d.title?`<div class="preview-text">${d.title}</div>`:''} ${d.desc?`<div class="preview-desc">${d.desc}</div>`:''}
+    <div class="preview-domain"><img src="${d.favicon}" class="preview-favicon" onerror="this.style.display='none'">${d.domain}</div></div></a>`;
 }
 
 // ── Send ──────────────────────────────────────────────────────────────────────
 async function sendMsg() {
   const s   = requireSession();
   const inp = document.getElementById('msgInput');
-  const msg = inp.value.trim();
+  let msg   = inp.value.trim();
   if (!msg || !currentRoom) return;
-  inp.value            = '';
-  inp.style.height     = 'auto';
-  await POST('/send', {
-    room: currentRoom, password: currentPass,
-    user: s.user, pin: s.pin, content: msg,
+
+  // Replace emoji shortcuts
+  Object.entries(EMOJI_MAP).forEach(([code, emoji]) => {
+    msg = msg.split(code).join(emoji);
   });
+
+  inp.value        = '';
+  inp.style.height = 'auto';
+  hideCmdHint();
+  await POST('/send', { room: currentRoom, password: currentPass, user: s.user, pin: s.pin, content: msg });
   await fetchMessages();
 }
 
-function handleKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
-}
 function autoResize(el) {
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 120) + 'px';
@@ -621,6 +670,13 @@ function autoResize(el) {
 function toggleRoomPanel() {
   document.getElementById('roomPanel').classList.toggle('hidden');
 }
+
+// Global Escape closes all modals
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeHelp(); closeEmoji(); closePurge(); closePass(); hideCmdHint();
+  }
+});
 </script>
 </body>
 </html>

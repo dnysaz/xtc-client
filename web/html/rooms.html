@@ -151,7 +151,9 @@ async function loadRooms() {
           </div>
           <div class="flex items-center gap-2 shrink-0">
             <a href="/chat?room=${encodeURIComponent(r.name)}" class="btn btn-ghost text-xs py-1.5 px-3" style="text-decoration:none">Chat →</a>
-            <button onclick="openDelete('${r.name}')" class="btn btn-danger text-xs py-1.5 px-3">Delete</button>
+            ${r.creator.toLowerCase() === s.user.toLowerCase()
+              ? `<button onclick="openDelete('${r.name}')" class="btn btn-danger text-xs py-1.5 px-3">Delete</button>`
+              : `<button disabled title="Only the room creator can delete" class="btn btn-ghost text-xs py-1.5 px-3 opacity-30 cursor-not-allowed">Delete</button>`}
           </div>
         </div>`).join('')}
     </div>
