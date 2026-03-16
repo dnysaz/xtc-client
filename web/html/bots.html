@@ -123,6 +123,9 @@
     <div id="botList" class="card mb-4">
       <div class="flex items-center justify-center h-32 text-slate-300 text-sm mono">Loading...</div>
     </div>
+    <div class="p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700">
+      💡 Create new bots from terminal: <span class="mono font-bold">xtc start:bot</span>
+    </div>
   </main>
 </div>
 
@@ -170,7 +173,12 @@ async function loadBots() {
       ${bots.map(b => {
         const tasks  = (typeof b.tasks==='string' ? JSON.parse(b.tasks||'[]') : b.tasks||[]);
         const tNames = tasks.map(t=>t.id).join(', ') || '—';
-        const active = b.status === 'active';
+        const active  = b.status === 'active';
+        // isOwner: true if current session PIN matches the bot's registered PIN
+        // Web bots: pin = s.pin (5-digit), CLI bots: pin = hardware UUID
+        // Admin endpoints (/bot/admin/*) allow any registered user to act,
+        // but we still only show Delete to the actual owner
+        const isOwner = s && String(b.pin) === String(s.pin);
         return `
         <div class="flex items-start gap-4 px-5 py-4 hover:bg-slate-50/50 transition-colors">
           <div class="w-9 h-9 rounded-xl ${active?'bg-green-50':'bg-slate-100'} flex items-center justify-center text-lg shrink-0">🤖</div>
@@ -193,7 +201,9 @@ async function loadBots() {
             ${active
               ? `<button onclick="stopBot(${b.id},'${b.name}')" class="btn btn-warn text-xs py-1.5 px-3">Stop</button>`
               : `<button onclick="startBot(${b.id},'${b.name}')" class="btn btn-primary text-xs py-1.5 px-3">Start</button>`}
-            <button onclick="deleteBot(${b.id},'${b.name}',${active})" class="btn btn-danger text-xs py-1.5 px-3">Delete</button>
+            ${isOwner
+              ? `<button onclick="deleteBot(${b.id},'${b.name}',${active})" class="btn btn-danger text-xs py-1.5 px-3">Delete</button>`
+              : `<button disabled title="Only the bot owner can delete" class="btn btn-ghost text-xs py-1.5 px-3 opacity-30 cursor-not-allowed">Delete</button>`}
           </div>
         </div>`}).join('')}
     </div>
